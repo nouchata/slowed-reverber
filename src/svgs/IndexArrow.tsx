@@ -1,12 +1,14 @@
 import gsap from 'gsap';
-import { useRef } from 'react';
+import { useContext, useRef } from 'react';
 
+import { TransitionContext } from '@/utils/contexts/TransitionContext';
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 import useIsomorphicLayoutEffect from '@/utils/useIsomorphicLayoutEffect';
 
 type IIndexArrowProps = {
   direction: 'up' | 'down';
-  noticeMeAnimation?: boolean;
+  // noticeMeAnimation?: boolean;
+  outroAnimation?: boolean;
 };
 
 const IndexArrowSVG = (
@@ -15,6 +17,8 @@ const IndexArrowSVG = (
   /* gsap stuff */
   const showingTlRef = useRef<gsap.core.Timeline>(gsap.timeline());
   const indexArrowSvgRef = useRef<SVGSVGElement>(null);
+  const outroTimeline = useContext(TransitionContext).timeline;
+
   useIsomorphicLayoutEffect(() => {
     const arrowForm = props.direction === 'up' ? 25 : 5;
     const arrowMovement = props.direction === 'up' ? -10 : 10;
@@ -37,8 +41,26 @@ const IndexArrowSVG = (
           repeat: -1,
           yoyo: true,
         });
+      outroTimeline?.to(
+        'line',
+        {
+          attr: {
+            y1: 15,
+            y2: 15,
+          },
+          // opacity: 0,
+          duration: 0.5,
+          onStart() {
+            showingTlRef.current.pause('idleAnimation').kill();
+          },
+        },
+        0
+      );
     }, indexArrowSvgRef);
-    return () => ctx.revert();
+
+    return () => {
+      ctx.revert();
+    };
   }, []);
   return (
     <svg

@@ -25,9 +25,6 @@ export class Particle {
 
   highlight: boolean = false;
 
-  /* used for the draw call */
-  color = '#FFFFFF';
-
   /* size and color are optionals */
   constructor(
     ctx: CanvasRenderingContext2D,
@@ -36,15 +33,13 @@ export class Particle {
     y: number,
     directionX: number,
     directionY: number,
-    size?: number,
-    color?: string
+    size?: number
   ) {
     this.ctx = ctx;
     this.mouseData = mouseData;
     [this.x, this.y] = [x, y];
     [this.directionX, this.directionY] = [directionX, directionY];
     this.size = size || this.size;
-    this.color = color || this.color;
   }
 
   /* after some optimisation tests, draw wont call fill so it just put the particle for it to be drawn later */

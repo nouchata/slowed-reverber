@@ -19,4 +19,5 @@ export type IParticlesContainerMousePosCoords = {
 export type IParticlesContainerUnitsManager = {
   particlesArray: Array<Particle>;
   numberOfParticles: number;
+  color: string;
 };

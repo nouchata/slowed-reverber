@@ -1,6 +1,7 @@
 import gsap from 'gsap';
-import { useRef } from 'react';
+import { useContext, useRef } from 'react';
 
+import { TransitionContext } from '@/utils/contexts/TransitionContext';
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 import useIsomorphicLayoutEffect from '@/utils/useIsomorphicLayoutEffect';
 
@@ -9,6 +10,7 @@ const IndexLogoSVG = (props: IStylePropsInterface): JSX.Element => {
   const svgLogo = useRef<SVGSVGElement>(null);
   /* used to stock the tl (prevent it to be lost when react re-render) */
   const svgLogoTl = useRef<gsap.core.Timeline>(gsap.timeline());
+  const outroTimeline = useContext(TransitionContext).timeline;
 
   /* gsap recommands the use of useLayoutEffect so */
   useIsomorphicLayoutEffect(() => {
@@ -39,6 +41,24 @@ const IndexLogoSVG = (props: IStylePropsInterface): JSX.Element => {
         .addLabel('logoSplit')
         .to('#svgGroupSlowed', { ease: 'ease.in', x: -50 }, 'logoSplit')
         .to('#svgGroupReverb', { ease: 'ease.in', x: 50 }, 'logoSplit');
+      /* outro animations */
+      outroTimeline?.to(
+        '#svgGroupSlowed',
+        {
+          x: '-=100%',
+          opacity: 0,
+          duration: 0.5,
+          onStart() {
+            svgLogoTl.current.seek('>').kill();
+          },
+        },
+        0
+      );
+      outroTimeline?.to(
+        '#svgGroupReverb',
+        { x: '+=100%', opacity: 0, duration: 0.5 },
+        0
+      );
     }, svgLogo);
     /* cleanup */
     return () => logoCtx.revert();

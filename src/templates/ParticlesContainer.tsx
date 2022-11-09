@@ -26,6 +26,7 @@ const ParticlesContainer = (
     /* units manager part */
     particlesArray: [],
     numberOfParticles: 0,
+    color: '',
   });
 
   /* using windowSize as a watcher to run and update the canvas size */
@@ -63,7 +64,7 @@ const ParticlesContainer = (
           /* glowing effect on the canvas if allowed */
           /* WARNING CPU PERFORMANCE ISSUES WITH IT / prefer css blur (basically the same effect but cheaper in both senses) */
           if (props.particleGlow !== false) {
-            ctx.shadowColor = props.particleColor || '#FFFFFF';
+            ctx.shadowColor = containerDataRef.current.color || '#FFFFFF';
             ctx.shadowBlur = 10;
           }
           /* loop to fill the array */
@@ -91,8 +92,7 @@ const ParticlesContainer = (
                 y,
                 directionX,
                 directionY,
-                size,
-                props.particleColor
+                size
               )
             );
           }
@@ -108,7 +108,7 @@ const ParticlesContainer = (
               );
               /* some optimisations to limit fill calls */
               ctx.beginPath();
-              ctx.fillStyle = '#FFFFFF';
+              ctx.fillStyle = containerDataRef.current.color || '#FFFFFF';
               // eslint-disable-next-line no-restricted-syntax
               for (const particle of containerDataRef.current.particlesArray)
                 particle.update();
@@ -134,12 +134,13 @@ const ParticlesContainer = (
     return () => {
       runtime = false;
     };
-  }, [
-    windowSize,
-    props.particleSpeedFactor,
-    props.particleSize,
-    props.particleColor,
-  ]);
+    /* speedFactor and particleSize could be updated as for particleColor by adding them in containerDataRef
+     * and giving the object to the Particle object when created to instant update them when React revamp but i'm lazy */
+  }, [windowSize, props.particleSpeedFactor, props.particleSize]);
+
+  useEffect(() => {
+    containerDataRef.current.color = props.particleColor || '';
+  }, [props.particleColor]);
 
   return (
     <canvas

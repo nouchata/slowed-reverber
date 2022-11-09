@@ -8,6 +8,7 @@ type IMetaProps = {
   title: string;
   description: string;
   canonical?: string;
+  children?: JSX.Element;
 };
 
 const Meta = (props: IMetaProps) => {
@@ -46,6 +47,7 @@ const Meta = (props: IMetaProps) => {
           href={`${router.basePath}/favicon.ico`}
           key="favicon"
         />
+        {props.children}
       </Head>
       <NextSeo
         title={props.title}
