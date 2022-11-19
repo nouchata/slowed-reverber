@@ -38,6 +38,15 @@ module.exports = {
           900: '#2a4365',
         },
       },
+      animation: {
+        'big-elem-ping': 'big-elem-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite',
+      },
+      keyframes: {
+        'big-elem-ping': {
+          '0%': { opacity: '80%' },
+          '100%': { transform: 'scale(1.2)', opacity: '0' },
+        },
+      },
     },
   },
   plugins: [],
