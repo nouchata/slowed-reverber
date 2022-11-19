@@ -6,5 +6,5 @@ export type IStylePropsInterface = {
 };
 
 export type IBasicPropsInterface = {
-  children?: JSX.Element;
+  children?: any;
 } & IStylePropsInterface;

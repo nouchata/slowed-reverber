@@ -35,6 +35,7 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
+    gsap.set('#main-display-div', { className: 'bg-slate-900' });
     gsap.registerPlugin(Observer);
     const scrollObserver = Observer.create({
       // target: indexDivRef.current,
@@ -57,7 +58,7 @@ const Index = () => {
         description={'Slowed & Reverber Software' || router.asPath}
       ></Meta>
       <div
-        className="bg-slate-900 box-border relative w-full h-full overflow-hidden"
+        className="box-border relative w-full h-full overflow-hidden bg-slate-900"
         onMouseMove={(e) => {
           /* value updating is made this way instead of '= { x: ... }' to keep the reference of the object */
           mouseDataRef.current.x = e.clientX;

@@ -2,6 +2,7 @@ import gsap from 'gsap';
 import type { Dispatch, SetStateAction } from 'react';
 import { createContext, useContext, useState } from 'react';
 
+import type { IBasicPropsInterface } from '../interfaces/BasicPropsInterface';
 import useIsomorphicLayoutEffect from '../useIsomorphicLayoutEffect';
 
 /* transition manager code by John Polacek
@@ -35,7 +36,7 @@ const TransitionProvider = (props: { children: JSX.Element }) => {
 };
 
 /* the transition layout serves the new page by executing the outro transition stacked in the context timeline if there is */
-const TransitionLayout = (props: { children: JSX.Element }): JSX.Element => {
+const TransitionLayout = (props: IBasicPropsInterface): JSX.Element => {
   const [displayChildren, setDisplayChildren] = useState(props.children);
   const timeline = useContext(TransitionContext).timeline as gsap.core.Timeline;
 
@@ -54,7 +55,11 @@ const TransitionLayout = (props: { children: JSX.Element }): JSX.Element => {
     }
   }, [props.children]);
 
-  return <div id={'main-display-div'}>{displayChildren}</div>;
+  return (
+    <div className={'bg-slate-900'} id={'main-display-div'}>
+      {displayChildren}
+    </div>
+  );
 };
 
 export { TransitionContext, TransitionLayout, TransitionProvider };

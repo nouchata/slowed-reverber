@@ -69,6 +69,8 @@ const IndexLogoSVG = (props: IStylePropsInterface): JSX.Element => {
       viewBox="0 0 699.71 758.55"
       className={`${props.className} antialiased overflow-visible`}
       ref={svgLogo}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-labelledby="title"
     >
       <title>Slowed & Reverb Logo</title>
