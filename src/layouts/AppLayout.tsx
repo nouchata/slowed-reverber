@@ -27,7 +27,8 @@ const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
           <AppModals className="z-50" />
           <AppHeader
             title={props.tabName}
-            className="backdrop-blur-sm h-[70px] block absolute top-0 w-full drop-shadow z-30"
+            /* backdrop blur (backdrop-blur-sm) seems to give firefox epilepsy, needs to be investigated more */
+            className="h-[70px] block absolute top-0 w-full drop-shadow z-30"
           ></AppHeader>
           <div className="relative flex-1 pt-[70px]">
             {props.children && props.children}
