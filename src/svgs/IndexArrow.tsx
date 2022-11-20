@@ -70,6 +70,7 @@ const IndexArrowSVG = (
       className={props.className}
       style={props.style}
       ref={indexArrowSvgRef}
+      aria-labelledby="title"
     >
       <title>{`Scroll ${props.direction}`}</title>
       <g

@@ -2,7 +2,7 @@ import gsap from 'gsap';
 import { Observer } from 'gsap/dist/Observer';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useContext, useEffect, useRef } from 'react';
+import { useContext, useRef } from 'react';
 
 import { Meta } from '@/layouts/Meta';
 import IndexArrowSVG from '@/svgs/IndexArrow';
@@ -24,31 +24,40 @@ const Index = () => {
   const outroTimeline = useContext(TransitionContext).timeline;
 
   useIsomorphicLayoutEffect(() => {
+    let observer: Observer | undefined;
     const ctx = gsap.context(() => {
       outroTimeline?.to(
         indexDivRef.current,
         { opacity: 0, y: '-=100%', duration: 0.2 },
         '+=0'
       );
-    }, indexDivRef);
-    return () => ctx.revert();
-  }, []);
-
-  useEffect(() => {
-    gsap.set('#main-display-div', { className: 'bg-slate-900' });
-    gsap.registerPlugin(Observer);
-    const scrollObserver = Observer.create({
-      // target: indexDivRef.current,
-      type: 'wheel,touch,pointer',
-      wheelSpeed: -1,
-      tolerance: 10,
-      preventDefault: true,
-      onUp() {
-        router.push('/about');
-      },
+      gsap.set('#main-display-div', { className: 'bg-slate-900' });
+      gsap.registerPlugin(Observer);
+      /* trash closure to ensure push is called one time since
+       * onUp event triggers like lucky luke */
+      const ensureOneCall = ((fn: Function, args: Array<any>) => {
+        let isCalled = false;
+        return () => {
+          if (isCalled) return;
+          isCalled = true;
+          fn(...args);
+        };
+      })(router.push, ['/about']);
+      observer = Observer.create({
+        // target: indexDivRef.current,
+        type: 'wheel,touch,pointer',
+        wheelSpeed: -1,
+        tolerance: 10,
+        preventDefault: true,
+        onUp() {
+          ensureOneCall();
+        },
+      });
     });
-
-    return () => scrollObserver.kill();
+    return () => {
+      observer?.kill();
+      ctx.revert();
+    };
   }, []);
 
   return (
