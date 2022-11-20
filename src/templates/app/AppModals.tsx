@@ -18,6 +18,8 @@ const AppModals = (props: IBasicPropsInterface) => {
   const modalXlTl = useRef<gsap.core.Timeline>(gsap.timeline({ paused: true }));
   const modalXlDragDownRef = useRef<SVGSVGElement>(null);
   useIsomorphicLayoutEffect(() => {
+    /* draggable ref */
+    let draggable: Draggable | undefined;
     const ctx = gsap.context(() => {
       gsap.registerPlugin(Draggable);
       /* using display instead of dom removal allows to control the animation when the user is navigating */
@@ -25,10 +27,8 @@ const AppModals = (props: IBasicPropsInterface) => {
         .set(modalContainerRef.current, { css: { display: 'block' } })
         .to(modalContainerRef.current, {
           backgroundColor: 'rgba(0,0,0,0.5)',
-          duration: 0.5,
+          duration: 0.3,
         });
-      /* draggable ref */
-      let draggable: Draggable | undefined;
       modalXlTl.current
         .set(modalXlRef.current, { css: { display: 'block' } })
         .from(modalXlRef.current, { y: '100%', duration: 0.3 }, 0)
@@ -51,6 +51,7 @@ const AppModals = (props: IBasicPropsInterface) => {
                    * current point if the modal is pulled enough, else it puts
                    * it back where it was */
                   if (event.pageY >= 300) {
+                    // responsive calculation for the value could be better for some devices
                     draggable?.kill();
                     draggable = undefined;
                     modalXlTl.current.invalidate();
@@ -75,6 +76,7 @@ const AppModals = (props: IBasicPropsInterface) => {
     });
 
     return () => {
+      draggable?.kill();
       ctx.revert();
     };
   }, []);
