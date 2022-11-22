@@ -1,11 +1,16 @@
 import type { DBSchema } from 'idb';
 
+export type ISoundsManagerCallbacks = {
+  successCallback?: Function;
+  successCallbackArgs?: Array<any>;
+  errorCallback?: Function;
+  errorCallbackArgs?: Array<any>;
+};
+
 export type ISoundsManagerConstructorArgs = {
-  afterInitCallback?: Function;
-  afterInitArgs?: Array<any>;
   /* if upgrade db is needed (i.e. the schema has changed) */
   dbVersion?: number;
-};
+} & ISoundsManagerCallbacks;
 
 /* sounds-info store elements' content */
 export type ISoundsInfoStoreValue = {

@@ -5,6 +5,7 @@ import MenuSongsSVG from '@/svgs/app/menu/MenuSongs';
 import AppHeader from '@/templates/app/AppHeader';
 import AppMenu from '@/templates/app/AppMenu';
 import AppModals from '@/templates/app/AppModals';
+import SoundsManagerProvider from '@/utils/contexts/SoundsManagerContext';
 import type { IBasicPropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 
 const menuItems = {
@@ -18,7 +19,7 @@ const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
     gsap.set('#main-display-div', { className: 'bg-slate-700' });
   }, []);
   return (
-    <>
+    <SoundsManagerProvider>
       <div id="app-container" className="flex w-full h-full justify-center">
         <div
           id="app-display"
@@ -40,7 +41,7 @@ const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
           ></AppMenu>
         </div>
       </div>
-    </>
+    </SoundsManagerProvider>
   );
 };
 

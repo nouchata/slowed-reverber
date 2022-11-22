@@ -18,7 +18,7 @@ type ITransitionContextValues = {
 const TransitionContext = createContext<ITransitionContextValues>({});
 
 /* the provider used with the context */
-const TransitionProvider = (props: { children: JSX.Element }) => {
+const TransitionProvider = (props: { children: any }) => {
   const [timeline, setTimeline] = useState<gsap.core.Timeline>(
     gsap.timeline({ paused: true })
   );
@@ -36,7 +36,7 @@ const TransitionProvider = (props: { children: JSX.Element }) => {
 };
 
 /* the transition layout serves the new page by executing the outro transition stacked in the context timeline if there is */
-const TransitionLayout = (props: IBasicPropsInterface): JSX.Element => {
+const TransitionLayout = (props: IBasicPropsInterface) => {
   const [displayChildren, setDisplayChildren] = useState(props.children);
   const timeline = useContext(TransitionContext).timeline as gsap.core.Timeline;
 
