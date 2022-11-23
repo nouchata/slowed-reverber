@@ -12,30 +12,46 @@ export type ISoundsManagerConstructorArgs = {
   dbVersion?: number;
 } & ISoundsManagerCallbacks;
 
+export enum ESoundsManagerState {
+  UNINITIALIZE,
+  INITIALIZE,
+  ENDED,
+}
+
+/* DB INTERFACES */
+
 /* sounds-info store elements' content */
 export type ISoundsInfoStoreValue = {
   creationDate: Date;
   /* the blob hashes identifie the assets in the other stores since multiple edit instances can share it */
-  blobAudioHash: string | undefined;
-  blobVisualHash: string | undefined;
-  name: string | undefined;
-  speedValue: number | undefined;
-  pitchValue: number | undefined;
-  reverbEffectValue: number | undefined;
+  blobAudioHash: string;
+  blobVisualHash: string;
+  name: string;
+  author: string;
+  speedValue: number;
+  pitchValue: number;
+  reverbEffectValue: number;
   /* stands for the muffled effect */
-  lowKeyEffectValue: number | undefined;
+  lowKeyEffectValue: number;
 };
 
 /* sounds-info store design */
-export type ISoundsInfoStore = {
+export type ISoundsInfoStoreAssets = {
   /* key is generated and used by indexedDB as an ID */
   key: string;
-  value: ISoundsInfoStoreValue;
   indexes: {
     'by-date': Date;
     'by-audio-blob-key': string;
     'by-visual-blob-key': string;
   };
+};
+
+export type ISoundsInfoStore = ISoundsInfoStoreAssets & {
+  value: ISoundsInfoStoreValue;
+};
+
+export type ISoundsTempInfoStore = ISoundsInfoStoreAssets & {
+  value: Partial<ISoundsInfoStoreValue>;
 };
 
 /* blobs store elements' content */
@@ -54,7 +70,7 @@ export interface ISoundsManagerDB extends DBSchema {
   /* the sounds' informations */
   'sounds-info': ISoundsInfoStore;
   /* same as sounds-info but for still-in-setup songs */
-  'sounds-temp-info': ISoundsInfoStore;
+  'sounds-temp-info': ISoundsTempInfoStore;
   /* inputed audio store */
   'sounds-source-blob': ISoundsBlobStore;
   /* visual-asset-used-to-make-video store */

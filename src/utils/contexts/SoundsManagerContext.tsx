@@ -1,4 +1,4 @@
-import { createContext, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 
 import SoundsManager from '../SoundModule/SoundsManager';
 
@@ -13,13 +13,17 @@ const SoundsManagerContext = createContext<ISoundsManagerContextValues>({});
 
 const SoundsManagerProvider = (props: { children: any }) => {
   const [error, setError] = useState('');
+  const [soundsManager, setSoundsManager] = useState<SoundsManager>();
+  /* soundsManager cleanup */
+  useEffect(() => {
+    setSoundsManager(new SoundsManager({ errorCallback: setError }));
+    return () => soundsManager?.destructor();
+  }, []);
   return (
     <SoundsManagerContext.Provider
       value={{
         error,
-        soundsManager: new SoundsManager({
-          errorCallback: setError,
-        }),
+        soundsManager,
       }}
     >
       {props.children}
@@ -28,3 +32,4 @@ const SoundsManagerProvider = (props: { children: any }) => {
 };
 
 export default SoundsManagerProvider;
+export { SoundsManagerContext };

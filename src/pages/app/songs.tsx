@@ -1,11 +1,15 @@
 import { useRouter } from 'next/router';
+import { useContext } from 'react';
 
 import AppLayout from '@/layouts/AppLayout';
 import { Meta } from '@/layouts/Meta';
+import Player from '@/templates/app/player/Player';
+import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { NextPageLayoutInterface } from '@/utils/interfaces/NextPageLayoutInterface';
 
 const AppSongs: NextPageLayoutInterface = () => {
   const router = useRouter();
+  const { soundsManager } = useContext(SoundsManagerContext);
   return (
     <>
       <Meta
@@ -15,14 +19,28 @@ const AppSongs: NextPageLayoutInterface = () => {
           router.asPath
         }
       ></Meta>
-      <div className="h-full w-full"></div>
+      <div className="h-full w-full">
+        <Player className="m-5 h-10" />
+        <input
+          type="file"
+          onChange={(e) => {
+            if (!(e.target as HTMLInputElement).files?.length) return;
+            (async () => {
+              const arrayBuffer = await (
+                e.target as HTMLInputElement
+              ).files![0]!.arrayBuffer();
+              soundsManager?.addFile(arrayBuffer);
+            })();
+          }}
+        />
+      </div>
       <div
         id="song-tab-add-button-ping"
-        className="absolute bottom-5 right-5 h-20 w-20 bg-blue-700 animate-big-elem-ping rounded"
+        className="absolute bottom-5 right-5 h-20 w-20 bg-slate-700 animate-big-elem-ping rounded"
       ></div>
       <button
         id="song-tab-add-button"
-        className="absolute bottom-5 right-5 h-20 w-20 stroke-white bg-blue-700 rounded flex justify-center items-center box-border p-2"
+        className="absolute bottom-5 right-5 h-20 w-20 stroke-white bg-purple-700 rounded flex justify-center items-center box-border p-2"
         onClick={() =>
           router.push(
             { pathname: '/app/songs', query: { md: 'addSong' } },

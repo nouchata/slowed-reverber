@@ -44,7 +44,7 @@ module.exports = {
       keyframes: {
         'big-elem-ping': {
           '0%': { opacity: '80%' },
-          '100%': { transform: 'scale(1.2)', opacity: '0' },
+          '100%': { transform: 'scale(1.3)', opacity: '0' },
         },
       },
     },

@@ -16,7 +16,7 @@ const AppModals = (props: IBasicPropsInterface) => {
   const modalXlRef = useRef<HTMLDivElement>(null);
   /*  this tl is used to slide in the xl modal and to slide it out when the draggable is not used */
   const modalXlTl = useRef<gsap.core.Timeline>(gsap.timeline({ paused: true }));
-  const modalXlDragDownRef = useRef<SVGSVGElement>(null);
+  const modalXlDragDownRef = useRef<HTMLDivElement>(null);
   useIsomorphicLayoutEffect(() => {
     /* draggable ref */
     let draggable: Draggable | undefined;
@@ -102,21 +102,26 @@ const AppModals = (props: IBasicPropsInterface) => {
     >
       <div
         id="app-display-xl-modal"
-        className="absolute hidden opacity-0 bottom-0 w-full h-[90%] rounded-t bg-slate-600 overflow-hidden"
+        className="absolute hidden opacity-0 bottom-0 w-full h-[90%] rounded-t-lg bg-[#22252A] overflow-visible"
         ref={modalXlRef}
       >
-        <svg
-          viewBox="0 0 50 15"
-          xmlns="http://www.w3.org/2000/svg"
-          className="stroke-white absolute w-[20%] top-0 left-[calc(50%-10%)] overflow-visible z-10"
-          strokeWidth="3"
-          strokeLinecap="round"
+        <div
+          className="absolute w-full h-16 top-[-40px] flex justify-center items-end z-10"
           ref={modalXlDragDownRef}
-          aria-labelledby="title"
         >
-          <title>Drag down to close the modal</title>
-          <line y2="7.5" x2="45" y1="7.5" x1="5" fill="none" />
-        </svg>
+          <svg
+            viewBox="0 0 50 15"
+            xmlns="http://www.w3.org/2000/svg"
+            className="stroke-white overflow-visible h-6"
+            fill="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            aria-labelledby="title"
+          >
+            <title>Drag down to close the modal</title>
+            <line y2="7.5" x2="45" y1="7.5" x1="5" fill="none" />
+          </svg>
+        </div>
       </div>
       <div></div>
     </div>
