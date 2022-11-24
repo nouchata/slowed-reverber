@@ -1,14 +1,15 @@
-import gsap from 'gsap';
 import { useRouter } from 'next/router';
-import { useContext, useEffect, useRef } from 'react';
+import { useContext, useRef } from 'react';
 
 import MenuSongsSVG from '@/svgs/app/menu/MenuSongs';
 import AppHeader from '@/templates/app/AppHeader';
 import AppMenu from '@/templates/app/AppMenu';
 import AppModals from '@/templates/app/AppModals';
+import StaticContainer from '@/templates/StaticContainer';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import SoundsManagerProvider from '@/utils/contexts/SoundsManagerContext';
 import type { IBasicPropsInterface } from '@/utils/interfaces/BasicPropsInterface';
+import useWindowSize from '@/utils/useWindowSize';
 
 const menuItems = {
   Songs: MenuSongsSVG,
@@ -24,17 +25,16 @@ const dragEventPreventDefaultTriggering = (e: any) => {
 const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
   const router = useRouter();
   const { appData, setAppData } = useContext(AppDataContext);
+  /* used to put the staticcontainer in the dom */
+  const windowWidth = useWindowSize().width;
   /* a simple way to know to count the dragenter/leave events since they
    * retrigger each time they're passing on a new child elem */
   const enterAndLeaveEventCount = useRef(0);
-  useEffect(() => {
-    gsap.set('#main-display-div', { className: 'bg-slate-700' });
-  }, []);
   return (
     <SoundsManagerProvider>
       <div
         id="app-container"
-        className="flex w-full h-full justify-center"
+        className="relative flex w-full h-full justify-center bg-black"
         onDragEnter={(e) => {
           dragEventPreventDefaultTriggering(e);
           enterAndLeaveEventCount.current += 1;
@@ -73,6 +73,9 @@ const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
         onDragEnd={dragEventPreventDefaultTriggering}
         onDragStart={dragEventPreventDefaultTriggering}
       >
+        {windowWidth && windowWidth > 600 && (
+          <StaticContainer className="absolute top-0 left-0 w-full h-full" />
+        )}
         <div
           id="app-display"
           className="relative overflow-hidden h-full flex-[0_1_600px] bg-app-display-background drop-shadow-2xl flex flex-col flex-nowrap"
