@@ -9,6 +9,7 @@ const Player = (props: IStylePropsInterface) => {
   const [isPaused, setIsPaused] = useState(true);
   return (
     <div
+      style={props.style}
       className={`text-white flex flex-row flex-nowrap rounded bg-slate-600 select-none min-w-[250px] ${props.className}`}
     >
       <button

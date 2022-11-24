@@ -1,34 +1,50 @@
 import gsap from 'gsap';
 import Draggable from 'gsap/dist/Draggable';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
-import { useEffect, useRef } from 'react';
+import { Suspense, useContext, useEffect, useRef, useState } from 'react';
 
+import LoadingLogoSVG from '@/svgs/LoadingLogo';
+import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import type { IBasicPropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 import useIsomorphicLayoutEffect from '@/utils/useIsomorphicLayoutEffect';
 
 const AppModals = (props: IBasicPropsInterface) => {
   const router = useRouter();
+  const { appData, setAppData } = useContext(AppDataContext);
+
   const modalContainerRef = useRef<HTMLDivElement>(null);
   /* this tl is used to fade in/out the background of the modal container */
   const modalContainerTl = useRef<gsap.core.Timeline>(
     gsap.timeline({ paused: true })
   );
+
   const modalXlRef = useRef<HTMLDivElement>(null);
   /*  this tl is used to slide in the xl modal and to slide it out when the draggable is not used */
   const modalXlTl = useRef<gsap.core.Timeline>(gsap.timeline({ paused: true }));
   const modalXlDragDownRef = useRef<HTMLDivElement>(null);
+
+  /* async loading for the xl modal content w/ next/dynamic */
+  const [XLDynamicImport, setXLDynamicImport] = useState<any>(undefined);
+
+  /* used to shut down automatically the error modal after a second if the user hasn't */
+  const timeoutErrorModal = useRef<any>(undefined);
+
   useIsomorphicLayoutEffect(() => {
     /* draggable ref */
     let draggable: Draggable | undefined;
+
     const ctx = gsap.context(() => {
       gsap.registerPlugin(Draggable);
       /* using display instead of dom removal allows to control the animation when the user is navigating */
+
       modalContainerTl.current
         .set(modalContainerRef.current, { css: { display: 'block' } })
         .to(modalContainerRef.current, {
           backgroundColor: 'rgba(0,0,0,0.5)',
           duration: 0.3,
         });
+
       modalXlTl.current
         .set(modalXlRef.current, { css: { display: 'block' } })
         .from(modalXlRef.current, { y: '100%', duration: 0.3 }, 0)
@@ -82,6 +98,7 @@ const AppModals = (props: IBasicPropsInterface) => {
   }, []);
 
   useEffect(() => {
+    /* query parameter to set a xl modal */
     if (router.query.md) {
       modalContainerTl.current.play();
       /* ensures that the invalidates in the draggable event doesn't break the
@@ -89,42 +106,111 @@ const AppModals = (props: IBasicPropsInterface) => {
       gsap
         .set(modalXlRef.current, { y: 0 })
         .then(() => modalXlTl.current.invalidate().play());
+      /* this part handles the dynamic import of the modal files and the extra logic
+       * needed by them */
+      if (router.query.md === 'addSong') {
+        /* switch to the step 1 (or the correct one) if there's none given */
+        if (!router.query.step)
+          router.push(
+            { pathname: '/app/songs/', query: { md: 'addSong', step: '1' } },
+            undefined,
+            { shallow: true }
+          );
+        setXLDynamicImport(
+          dynamic(() => import('./addSong/AddSongModal'), { suspense: true })
+        );
+      }
     } else {
       modalContainerTl.current.reverse();
       modalXlTl.current.reverse();
+      setXLDynamicImport(undefined);
     }
   }, [router.query.md]);
+
+  useEffect(() => {
+    if (appData?.error) {
+      if (timeoutErrorModal.current) clearTimeout(timeoutErrorModal.current);
+      timeoutErrorModal.current = setTimeout(
+        () => setAppData!({ ...appData, error: undefined }),
+        4000
+      );
+    } else {
+      timeoutErrorModal.current = undefined;
+    }
+  }, [appData?.error]);
+
   return (
-    <div
-      id="app-display-modal-container"
-      className={`absolute hidden w-full h-full bg-[rgba(0,0,0,0)] ${props.className}`}
-      ref={modalContainerRef}
-    >
+    <>
       <div
-        id="app-display-xl-modal"
-        className="absolute hidden opacity-0 bottom-0 w-full h-[90%] rounded-t-lg bg-[#22252A] overflow-visible"
-        ref={modalXlRef}
+        id="app-display-error-modal"
+        className="absolute w-4/5 top-6 left-[10%] text-white bg-red-600 cursor-pointer select-none break-words box-border p-3 rounded drop-shadow-md transition-all -translate-y-20 z-50"
+        style={
+          appData?.error && !appData.criticalError ? { transform: 'none' } : {}
+        }
+        onClick={() => {
+          /* a click on the error modal hides it */
+          clearTimeout(timeoutErrorModal.current);
+          timeoutErrorModal.current = undefined;
+          setAppData!({ ...appData, error: undefined });
+        }}
+      >
+        {appData?.error && !appData.criticalError ? (
+          <>
+            <strong>Error:</strong> {appData.error}
+          </>
+        ) : (
+          <></>
+        )}
+      </div>
+      <div
+        id="app-display-modal-container"
+        className={`absolute hidden w-full h-full bg-[rgba(0,0,0,0)] z-40 ${props.className}`}
+        ref={modalContainerRef}
       >
         <div
-          className="absolute w-full h-16 top-[-40px] flex justify-center items-end z-10"
-          ref={modalXlDragDownRef}
+          id="app-display-xl-modal"
+          className="absolute hidden opacity-0 bottom-0 w-full h-[90%] rounded-t-lg bg-app-modal-xl-background overflow-visible"
+          ref={modalXlRef}
         >
-          <svg
-            viewBox="0 0 50 15"
-            xmlns="http://www.w3.org/2000/svg"
-            className="stroke-white overflow-visible h-6"
-            fill="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-            aria-labelledby="title"
+          <div
+            className="absolute w-full h-16 top-[-40px] flex justify-center items-end z-10"
+            id="app-display-xl-modal-drag-down"
+            ref={modalXlDragDownRef}
           >
-            <title>Drag down to close the modal</title>
-            <line y2="7.5" x2="45" y1="7.5" x1="5" fill="none" />
-          </svg>
+            <svg
+              viewBox="0 0 50 15"
+              xmlns="http://www.w3.org/2000/svg"
+              className="stroke-white overflow-visible h-6"
+              fill="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              aria-labelledby="title"
+            >
+              <title>Drag down to close the modal</title>
+              <line y2="7.5" x2="45" y1="7.5" x1="5" fill="none" />
+            </svg>
+          </div>
+          <div
+            id="add-display-xl-modal-container"
+            className="w-full h-full box-border pt-[20px] overflow-hidden"
+          >
+            {/* modal pages are loaded aside w/ suspense & next/dynamic for bundle size reduction */}
+            {XLDynamicImport && (
+              <Suspense
+                fallback={
+                  <div className="w-full h-full flex justify-center items-center overflow-hidden animate-pulse">
+                    <LoadingLogoSVG className="text-white flex-[0_0_50%]" />
+                  </div>
+                }
+              >
+                <XLDynamicImport />
+              </Suspense>
+            )}
+          </div>
         </div>
+        <div></div>
       </div>
-      <div></div>
-    </div>
+    </>
   );
 };
 

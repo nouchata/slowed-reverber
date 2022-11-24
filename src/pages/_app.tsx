@@ -2,6 +2,7 @@ import '../styles/global.scss';
 
 import type { AppProps } from 'next/app';
 
+import AppDataProvider from '@/utils/contexts/AppDataContext';
 import {
   TransitionLayout,
   TransitionProvider,
@@ -15,7 +16,9 @@ const MyApp = ({ Component, pageProps }: AppProps) => {
   return (
     <TransitionProvider>
       <TransitionLayout>
-        {getLayout(<Component {...pageProps} />)}
+        <AppDataProvider>
+          {getLayout(<Component {...pageProps} />)}
+        </AppDataProvider>
       </TransitionLayout>
     </TransitionProvider>
   );

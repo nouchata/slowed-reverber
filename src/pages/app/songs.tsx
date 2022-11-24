@@ -3,12 +3,13 @@ import { useContext } from 'react';
 
 import AppLayout from '@/layouts/AppLayout';
 import { Meta } from '@/layouts/Meta';
-import Player from '@/templates/app/player/Player';
+import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { NextPageLayoutInterface } from '@/utils/interfaces/NextPageLayoutInterface';
 
 const AppSongs: NextPageLayoutInterface = () => {
   const router = useRouter();
+  const { appData, setAppData } = useContext(AppDataContext);
   const { soundsManager } = useContext(SoundsManagerContext);
   return (
     <>
@@ -20,19 +21,31 @@ const AppSongs: NextPageLayoutInterface = () => {
         }
       ></Meta>
       <div className="h-full w-full">
-        <Player className="m-5 h-10" />
         <input
           type="file"
           onChange={(e) => {
             if (!(e.target as HTMLInputElement).files?.length) return;
             (async () => {
-              const arrayBuffer = await (
-                e.target as HTMLInputElement
-              ).files![0]!.arrayBuffer();
-              soundsManager?.addFile(arrayBuffer);
+              const file = (e.target as HTMLInputElement).files![0]!;
+              if (!file.type.includes('audio')) return;
+              soundsManager?.addFile(
+                await file.arrayBuffer(),
+                file.name.replace(/\.[^.]*$/, '')
+              );
             })();
           }}
         />
+        <button
+          className="mt-8 p-4 bg-slate-50 text-black"
+          onClick={() => {
+            setAppData!({
+              ...appData,
+              error: `HERE IS AN EAHGZTYDF7U8>JIRHVGFTYURROR ${Math.random()}`,
+            });
+          }}
+        >
+          seterror
+        </button>
       </div>
       <div
         id="song-tab-add-button-ping"
@@ -40,10 +53,10 @@ const AppSongs: NextPageLayoutInterface = () => {
       ></div>
       <button
         id="song-tab-add-button"
-        className="absolute bottom-5 right-5 h-20 w-20 stroke-white bg-purple-700 rounded flex justify-center items-center box-border p-2"
+        className="absolute bottom-5 right-5 h-20 w-20 text-white bg-app-primary-color rounded flex justify-center items-center box-border p-2"
         onClick={() =>
           router.push(
-            { pathname: '/app/songs', query: { md: 'addSong' } },
+            { pathname: '/app/songs/', query: { md: 'addSong', step: '1' } },
             undefined,
             { shallow: true }
           )
@@ -53,6 +66,7 @@ const AppSongs: NextPageLayoutInterface = () => {
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
           fill="none"
+          stroke="currentColor"
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"

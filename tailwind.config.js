@@ -15,6 +15,17 @@ module.exports = {
     },
     extend: {
       colors: {
+        app: {
+          'primary-color': '#7E22CE',
+          display: {
+            background: '#000',
+          },
+          modal: {
+            xl: {
+              background: '#22252A',
+            },
+          },
+        },
         gray: {
           100: '#f7fafc',
           200: '#edf2f7',
@@ -40,11 +51,16 @@ module.exports = {
       },
       animation: {
         'big-elem-ping': 'big-elem-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite',
+        'loading-logo-spin': 'loading-logo-spin 10s linear infinite',
       },
       keyframes: {
         'big-elem-ping': {
           '0%': { opacity: '80%' },
           '100%': { transform: 'scale(1.3)', opacity: '0' },
+        },
+        'loading-logo-spin': {
+          '0%': { strokeDashoffset: 0 },
+          '100%': { strokeDashoffset: 20 },
         },
       },
     },

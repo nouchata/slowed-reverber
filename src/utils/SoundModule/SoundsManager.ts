@@ -4,8 +4,8 @@ import { openDB } from 'idb';
 import SparkMD5 from 'spark-md5';
 
 import type {
-  ISoundsBlobStore,
-  ISoundsInfoStore,
+  ISoundsBlobStoreValue,
+  ISoundsInfoStoreValue,
   ISoundsManagerCallbacks,
   ISoundsManagerConstructorArgs,
   ISoundsManagerDB,
@@ -20,11 +20,12 @@ export default class SoundsManager {
    * assets needs to be flushed */
   private needsToBeDestructed = false;
 
-  public currentSound: {
-    soundInfoData: Partial<ISoundsInfoStore>;
-    soundSourceData: Partial<ISoundsBlobStore>;
-    visualSourceData: Partial<ISoundsBlobStore>;
-  } = { soundInfoData: {}, soundSourceData: {}, visualSourceData: {} };
+  public currentSound: Partial<{
+    soundInfoKey?: string;
+    soundInfoData: Partial<ISoundsInfoStoreValue>;
+    soundSourceData: Partial<ISoundsBlobStoreValue>;
+    visualSourceData: Partial<ISoundsBlobStoreValue>;
+  }> = {};
 
   /* audiocontext related */
   public audioContext: AudioContext | undefined = undefined;
@@ -110,12 +111,26 @@ export default class SoundsManager {
       }
     );
 
-    /* audiocontext setup */
+    /* AUDIO CONTEXT SETUP */
     this.audioContext = new AudioContextObject();
+    this.audioContext.suspend();
+    /* Safari iOS audioContext waker */
+    const initAudioContext = function initAudioContext(this: SoundsManager) {
+      document.removeEventListener('touchstart', initAudioContext);
+      // wake up AudioContext
+      if (this.audioContext && this.audioContext.state !== 'closed') {
+        const emptySource = this.audioContext.createBufferSource();
+        emptySource.start();
+        emptySource.stop();
+      }
+    }.bind(this);
+    document.addEventListener('touchstart', initAudioContext);
+
     /* processors init */
     await this.audioContext.audioWorklet.addModule(
       '/assets/js/phase-vocoder.min.js'
     );
+
     this.phaseVocoderProcessor = new AudioWorkletNode(
       this.audioContext,
       'phase-vocoder-processor'
@@ -124,14 +139,11 @@ export default class SoundsManager {
     this.muffledProcessor = this.audioContext.createBiquadFilter();
     this.muffledProcessor.type = 'lowpass';
     this.muffledProcessor.frequency.setTargetAtTime(
-      22050,
+      22050, // basically disable it
       this.audioContext.currentTime,
       0
     );
-    /* linking everything to the audiocontext */
-    // this.muffledProcessor.connect(this.audioContext.destination);
-    // this.reverbProcessor.connect(this.muffledProcessor);
-    // this.phaseVocoderProcessor.connect(this.audioContext.destination);
+
     /* init done ! */
     this.isFullyInit = true;
     this.afterInitData.successCallback!(
@@ -154,40 +166,48 @@ export default class SoundsManager {
   }
 
   /* file creation utils */
-  public async addFile(arrayBuffer: ArrayBuffer) {
-    this.checkIfAudioContextIsRunning();
-    this.currentSound.soundSourceData.value = {
+  public async addFile(arrayBuffer: ArrayBuffer, name: string) {
+    this.currentSound = {};
+    this.currentSound.soundSourceData = {
       data: arrayBuffer,
       hash: SparkMD5.ArrayBuffer.hash(arrayBuffer),
     };
-    // console.log(this.currentSound.soundSourceData.value.hash);
+    this.currentSound.soundInfoData = { name };
 
+    /* from array buffer to audio buffer */
     this.audioBufferInput = await this.audioContext!.decodeAudioData(
       arrayBuffer
     );
-    this.audioSourceInput = this.audioContext!.createBufferSource();
-    this.audioSourceInput.buffer = this.audioBufferInput;
-
-    this.audioSourceInput.disconnect();
-    // this.audioSourceInput.connect(this.phaseVocoderProcessor!);
-    this.reverbProcessor!.connect(this.audioSourceInput)
-      .connect(this.phaseVocoderProcessor!)
-      .connect(this.muffledProcessor!);
-    this.muffledProcessor!.connect(this.audioContext!.destination);
-    // this.audioSourceInput.connect(this.audioContext!.destination);
-    this.audioSourceInput.start();
-
-    let value = 1;
-    setInterval(() => {
-      // console.log('switch', value);
-      // console.log(this.reverbProcessor);
-      this.reverbProcessor!.mix(value);
-      value = value === 1 ? 0 : 1;
-    }, 10000);
+    /* then we make a buffer source to use with the api and we link the
+     * processes */
+    this.setAudioSourceInput();
+    this.linkingProcesses();
   }
 
   /* misc utils */
-  private checkIfAudioContextIsRunning() {
-    if (this.audioContext?.state !== 'running') this.audioContext?.resume();
+  // private checkIfAudioContextIsRunning() {
+  //   if (this.audioContext?.state !== 'running') this.audioContext?.resume();
+  // }
+
+  private setAudioSourceInput() {
+    if (this.audioSourceInput)
+      try {
+        this.audioSourceInput.disconnect();
+      } catch (e: any) { console.log(e.message); } //eslint-disable-line
+    this.audioSourceInput = this.audioContext!.createBufferSource();
+    this.audioSourceInput.buffer = this.audioBufferInput!;
+  }
+
+  private linkingProcesses() {
+    /* the reverb process struggles if the source input is connected while
+     * linking the processes */
+    this.audioSourceInput!.disconnect();
+    /* process connection link */
+    this.reverbProcessor!.connect(this.audioSourceInput!)
+      .connect(this.phaseVocoderProcessor!)
+      .connect(this.muffledProcessor!)
+      .connect(this.audioContext!.destination);
+
+    // this.audioSourceInput.start();
   }
 }
