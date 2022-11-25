@@ -10,7 +10,7 @@ const Player = (props: IStylePropsInterface) => {
   return (
     <div
       style={props.style}
-      className={`text-white flex flex-row flex-nowrap rounded bg-slate-600 select-none min-w-[250px] ${props.className}`}
+      className={`text-white flex flex-row flex-nowrap rounded select-none min-w-[250px] ${props.className}`}
     >
       <button
         onClick={() => setIsPaused(!isPaused)}

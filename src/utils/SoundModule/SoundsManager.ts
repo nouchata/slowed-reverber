@@ -60,20 +60,21 @@ export default class SoundsManager {
 
     ((osef) => osef)(this.isFullyInit && this.songsDb);
 
-    try {
-      this.asyncInit();
-    } catch (e: any) {
+    /* catch any critical error in the error callback */
+    this.asyncInit().catch((reason) =>
       this.afterInitData.errorCallback!(
-        e.message,
+        reason.message,
         ...this.afterInitData.errorCallbackArgs!
-      );
-    }
+      )
+    );
   }
 
   private async asyncInit() {
     /* AVAILABILITY CHECKS */
     if (!('indexedDB' in window))
-      throw new Error("This browser doesn't support IndexedDB");
+      throw new Error(
+        "Your browser doesn't seem to handle the database software, try to update it"
+      );
 
     const AudioContextObject =
       window.AudioContext ||
@@ -84,32 +85,44 @@ export default class SoundsManager {
       undefined;
 
     if (!AudioContextObject)
-      throw new Error("This browser doesn't support Web Audio API");
+      throw new Error(
+        "Your browser doesn't seem to handle the audio processing software, try to update it"
+      );
 
     /* DB CREATION / UPGRADE */
-    this.songsDb = await openDB<ISoundsManagerDB>(
-      'sounds-manager-db',
-      this.dbVersion || 1,
-      {
-        upgrade(db) {
-          const soundsInfoStore = db.createObjectStore('sounds-info');
-          soundsInfoStore.createIndex('by-date', 'creationDate');
-          soundsInfoStore.createIndex('by-audio-blob-key', 'blobAudioHash');
-          soundsInfoStore.createIndex('by-visual-blob-key', 'blobVisualHash');
-          const soundsTempInfoStore = db.createObjectStore('sounds-temp-info');
-          soundsTempInfoStore.createIndex('by-date', 'creationDate');
-          soundsTempInfoStore.createIndex('by-audio-blob-key', 'blobAudioHash');
-          soundsTempInfoStore.createIndex(
-            'by-visual-blob-key',
-            'blobVisualHash'
-          );
+    try {
+      this.songsDb = await openDB<ISoundsManagerDB>(
+        'sounds-manager-db',
+        this.dbVersion || 1,
+        {
+          upgrade(db) {
+            const soundsInfoStore = db.createObjectStore('sounds-info');
+            soundsInfoStore.createIndex('by-date', 'creationDate');
+            soundsInfoStore.createIndex('by-audio-blob-key', 'blobAudioHash');
+            soundsInfoStore.createIndex('by-visual-blob-key', 'blobVisualHash');
+            const soundsTempInfoStore =
+              db.createObjectStore('sounds-temp-info');
+            soundsTempInfoStore.createIndex('by-date', 'creationDate');
+            soundsTempInfoStore.createIndex(
+              'by-audio-blob-key',
+              'blobAudioHash'
+            );
+            soundsTempInfoStore.createIndex(
+              'by-visual-blob-key',
+              'blobVisualHash'
+            );
 
-          /* key index based on the hash code of the data */
-          db.createObjectStore('sounds-source-blob', { keyPath: 'hash' });
-          db.createObjectStore('sounds-visual-blob', { keyPath: 'hash' });
-        },
-      }
-    );
+            /* key index based on the hash code of the data */
+            db.createObjectStore('sounds-source-blob', { keyPath: 'hash' });
+            db.createObjectStore('sounds-visual-blob', { keyPath: 'hash' });
+          },
+        }
+      );
+    } catch {
+      throw new Error(
+        `An error occured while setting up the sounds database, it may be because you're in private navigation or because your browser is too old`
+      );
+    }
 
     /* AUDIO CONTEXT SETUP */
     this.audioContext = new AudioContextObject();
@@ -127,22 +140,28 @@ export default class SoundsManager {
     document.addEventListener('touchstart', initAudioContext);
 
     /* processors init */
-    await this.audioContext.audioWorklet.addModule(
-      '/assets/js/phase-vocoder.min.js'
-    );
+    try {
+      await this.audioContext.audioWorklet.addModule(
+        '/assets/js/phase-vocoder.min.js'
+      );
 
-    this.phaseVocoderProcessor = new AudioWorkletNode(
-      this.audioContext,
-      'phase-vocoder-processor'
-    );
-    this.reverbProcessor = new Reverb(this.audioContext);
-    this.muffledProcessor = this.audioContext.createBiquadFilter();
-    this.muffledProcessor.type = 'lowpass';
-    this.muffledProcessor.frequency.setTargetAtTime(
-      22050, // basically disable it
-      this.audioContext.currentTime,
-      0
-    );
+      this.phaseVocoderProcessor = new AudioWorkletNode(
+        this.audioContext,
+        'phase-vocoder-processor'
+      );
+      this.reverbProcessor = new Reverb(this.audioContext);
+      this.muffledProcessor = this.audioContext.createBiquadFilter();
+      this.muffledProcessor.type = 'lowpass';
+      this.muffledProcessor.frequency.setTargetAtTime(
+        22050, // basically disable it
+        this.audioContext.currentTime,
+        0
+      );
+    } catch {
+      throw new Error(
+        `An error occured while setting up the audio processors, it may be because you're not on a secure connection (HTTPS) or because your browser is too old`
+      );
+    }
 
     /* init done ! */
     this.isFullyInit = true;

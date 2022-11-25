@@ -7,6 +7,8 @@ export type IAppData = {
   /* if this is set to critical, it can be used as well for critical
    * error (though i don't see any use for now) */
   criticalError: boolean;
+  /* used for printing message in the medium modal */
+  mediumModalText: string;
   /* drag and drop flag for the song / image input */
   fileDragAndDrop: boolean;
 };

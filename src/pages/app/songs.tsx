@@ -46,6 +46,17 @@ const AppSongs: NextPageLayoutInterface = () => {
         >
           seterror
         </button>
+        <button
+          className="mt-8 p-4 bg-slate-50 text-black"
+          onClick={() => {
+            setAppData!({
+              ...appData,
+              mediumModalText: `HERE IS AN EAHGZTYDF7U8>JIRHVGFTYURROR ${Math.random()}`,
+            });
+          }}
+        >
+          setmodalmsg
+        </button>
       </div>
       <div
         id="song-tab-add-button-ping"

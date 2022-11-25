@@ -6,12 +6,15 @@ import { Suspense, useContext, useEffect, useRef, useState } from 'react';
 
 import LoadingLogoSVG from '@/svgs/LoadingLogo';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
-import type { IBasicPropsInterface } from '@/utils/interfaces/BasicPropsInterface';
+import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import useIsomorphicLayoutEffect from '@/utils/useIsomorphicLayoutEffect';
 
-const AppModals = (props: IBasicPropsInterface) => {
+const AppModals = () => {
   const router = useRouter();
+  /* used to get app-related error messages */
   const { appData, setAppData } = useContext(AppDataContext);
+  /* used to get soundsmanager-related error messages */
+  const { soundsManagerError } = useContext(SoundsManagerContext);
 
   const modalContainerRef = useRef<HTMLDivElement>(null);
   /* this tl is used to fade in/out the background of the modal container */
@@ -143,7 +146,7 @@ const AppModals = (props: IBasicPropsInterface) => {
     <>
       <div
         id="app-display-error-modal"
-        className="absolute w-4/5 top-6 left-[10%] text-white bg-red-600 cursor-pointer select-none break-words box-border p-3 rounded drop-shadow-md transition-all -translate-y-20 z-50"
+        className="absolute w-4/5 top-6 left-[10%] text-white bg-red-600 cursor-pointer select-none break-words box-border p-3 rounded drop-shadow-md transition-all -translate-y-20 z-40"
         style={
           appData?.error && !appData.criticalError ? { transform: 'none' } : {}
         }
@@ -162,9 +165,44 @@ const AppModals = (props: IBasicPropsInterface) => {
           <></>
         )}
       </div>
+      {/* the medium modal is also used for critical error, in the case of critical error, it can't be closed and will be showed
+       * with a slightly different style */}
+      {(appData?.mediumModalText || soundsManagerError) && (
+        <div
+          id="app-display-medium-modal"
+          className="absolute w-full h-full bg-[rgba(0,0,0,0.5)] z-50 flex justify-center items-center"
+        >
+          <div
+            className={`${
+              soundsManagerError
+                ? 'bg-app-primary-color'
+                : 'bg-app-modal-xl-lighter'
+            } flex-[0_0_320px] text-white box-border px-2 drop-shadow-lg rounded flex flex-col`}
+          >
+            {soundsManagerError && (
+              <h1 className="w-full text-center pt-4 font-bold select-none">
+                Critical error
+              </h1>
+            )}
+            <p className="w-full text-center py-4 break-words">
+              {soundsManagerError || appData?.mediumModalText}
+            </p>
+            {appData?.mediumModalText && !soundsManagerError && (
+              <button
+                className="w-full py-2 border-t-2 border-t-app-modal-xl-background"
+                onClick={() => {
+                  setAppData!({ ...appData, mediumModalText: '' });
+                }}
+              >
+                Close
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <div
-        id="app-display-modal-container"
-        className={`absolute hidden w-full h-full bg-[rgba(0,0,0,0)] z-40 ${props.className}`}
+        id="app-display-xl-container"
+        className={`absolute hidden w-full h-full bg-[rgba(0,0,0,0)] z-30`}
         ref={modalContainerRef}
       >
         <div

@@ -23,6 +23,7 @@ module.exports = {
           modal: {
             xl: {
               background: '#22252A',
+              lighter: '#2C2F35',
             },
           },
         },

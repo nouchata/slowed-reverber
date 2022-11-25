@@ -4,7 +4,9 @@ import SoundsManager from '../SoundModule/SoundsManager';
 
 type ISoundsManagerContextValues = {
   /* if an error occurs, it will be filled here */
-  error: string;
+  soundsManagerError: string;
+  /* is the sounds manager well init */
+  isSoundsManagerInit: boolean;
   /* the soundsmanager instance */
   soundsManager: SoundsManager;
 };
@@ -14,17 +16,24 @@ const SoundsManagerContext = createContext<
 >({});
 
 const SoundsManagerProvider = (props: { children: any }) => {
-  const [error, setError] = useState('');
+  const [soundsManagerError, setSoundsManagerError] = useState('');
+  const [isSoundsManagerInit, setIsSoundsManagerInit] = useState(false);
   const [soundsManager, setSoundsManager] = useState<SoundsManager>();
   /* soundsManager cleanup */
   useEffect(() => {
-    setSoundsManager(new SoundsManager({ errorCallback: setError }));
-    return () => soundsManager?.destructor();
+    const sm = new SoundsManager({
+      errorCallback: setSoundsManagerError,
+      successCallback: setIsSoundsManagerInit,
+      successCallbackArgs: [true],
+    });
+    setSoundsManager(sm);
+    return () => sm.destructor();
   }, []);
   return (
     <SoundsManagerContext.Provider
       value={{
-        error,
+        soundsManagerError,
+        isSoundsManagerInit,
         soundsManager,
       }}
     >
