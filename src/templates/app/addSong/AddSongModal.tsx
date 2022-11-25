@@ -11,7 +11,7 @@ const AddSongModal = () => {
   return (
     <div
       id="add-song-modal-container"
-      className="relative w-full h-full box-border border-2 rounded-t-lg"
+      className="relative w-full h-full box-border rounded-t-lg"
     >
       <div
         id="add-song-modal-container-content"

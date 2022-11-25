@@ -22,6 +22,7 @@ export default class SoundsManager {
 
   public currentSound: Partial<{
     soundInfoKey?: string;
+    soundInfoStore?: string;
     soundInfoData: Partial<ISoundsInfoStoreValue>;
     soundSourceData: Partial<ISoundsBlobStoreValue>;
     visualSourceData: Partial<ISoundsBlobStoreValue>;
@@ -96,12 +97,18 @@ export default class SoundsManager {
         this.dbVersion || 1,
         {
           upgrade(db) {
-            const soundsInfoStore = db.createObjectStore('sounds-info');
+            const soundsInfoStore = db.createObjectStore('sounds-info', {
+              autoIncrement: true,
+            });
             soundsInfoStore.createIndex('by-date', 'creationDate');
             soundsInfoStore.createIndex('by-audio-blob-key', 'blobAudioHash');
             soundsInfoStore.createIndex('by-visual-blob-key', 'blobVisualHash');
-            const soundsTempInfoStore =
-              db.createObjectStore('sounds-temp-info');
+            const soundsTempInfoStore = db.createObjectStore(
+              'sounds-temp-info',
+              {
+                autoIncrement: true,
+              }
+            );
             soundsTempInfoStore.createIndex('by-date', 'creationDate');
             soundsTempInfoStore.createIndex(
               'by-audio-blob-key',
@@ -187,11 +194,34 @@ export default class SoundsManager {
   /* file creation utils */
   public async addFile(arrayBuffer: ArrayBuffer, name: string) {
     this.currentSound = {};
+    this.currentSound.soundInfoStore = 'sounds-source-blob';
     this.currentSound.soundSourceData = {
       data: arrayBuffer,
       hash: SparkMD5.ArrayBuffer.hash(arrayBuffer),
     };
-    this.currentSound.soundInfoData = { name };
+    this.currentSound.soundInfoData = {
+      name,
+      blobAudioHash: this.currentSound.soundSourceData.hash,
+    };
+
+    /* injects the arraybuffer in the database if it doesn't exists */
+    if (
+      !(await this.songsDb?.get(
+        'sounds-source-blob',
+        this.currentSound.soundSourceData.hash!
+      ))
+    )
+      await this.songsDb?.add(
+        'sounds-source-blob',
+        this.currentSound.soundSourceData as ISoundsBlobStoreValue
+      );
+    /* create a new entry for the sound infos in the temporary store
+     * then assign the returned index in the local object for further
+     * edits */
+    this.currentSound.soundInfoKey = await this.songsDb?.add(
+      'sounds-temp-info',
+      this.currentSound.soundInfoData
+    );
 
     /* from array buffer to audio buffer */
     this.audioBufferInput = await this.audioContext!.decodeAudioData(

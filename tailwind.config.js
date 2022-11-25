@@ -53,6 +53,8 @@ module.exports = {
       animation: {
         'big-elem-ping': 'big-elem-ping 1s cubic-bezier(0, 0, 0.2, 1) infinite',
         'loading-logo-spin': 'loading-logo-spin 10s linear infinite',
+        'inject-new-file-rotate':
+          'quarter-turn-mid-pause 1.5s ease-in-out infinite',
       },
       keyframes: {
         'big-elem-ping': {
@@ -62,6 +64,12 @@ module.exports = {
         'loading-logo-spin': {
           '0%': { strokeDashoffset: 0 },
           '100%': { strokeDashoffset: 20 },
+        },
+        'quarter-turn-mid-pause': {
+          '0%': { transform: 'rotate(0deg)' },
+          '10%': { transform: 'rotate(-30deg)' },
+          '50%': { transform: 'rotate(90deg)' },
+          '100%': { transform: 'rotate(90deg)' },
         },
       },
     },
