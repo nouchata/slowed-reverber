@@ -16,7 +16,7 @@ const AppSongs: NextPageLayoutInterface = () => {
       <Meta
         title={'Songs - Slowed Reverb'}
         description={
-          'Edit your sound and make videos to match Slowed & Reverb aesthetic!' ||
+          'Edit your songs and make videos to match Slowed & Reverb aesthetic!' ||
           router.asPath
         }
       ></Meta>
@@ -67,7 +67,7 @@ const AppSongs: NextPageLayoutInterface = () => {
         className="absolute bottom-5 right-5 h-20 w-20 text-white bg-app-primary-color rounded flex justify-center items-center box-border p-2"
         onClick={() =>
           router.push(
-            { pathname: '/app/songs/', query: { md: 'addSong', step: '1' } },
+            { pathname: '/app/songs/', query: { md: 'addSong' } },
             undefined,
             { shallow: true }
           )

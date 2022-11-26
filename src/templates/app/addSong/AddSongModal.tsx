@@ -1,13 +1,27 @@
-import { useRouter } from 'next/router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import Player from '../player/Player';
 import InjectNewSong from './components/InjectNewSong';
 
-const AddSongModal = () => {
-  const router = useRouter();
-  const classForSteps = 'flex-1 overflow-auto w-full border-box p-2';
-  useEffect(() => {}, [router.query]);
+enum ECurrentEditState {
+  INPUT_SONG,
+  EDIT_STRINGS,
+  EDIT_VALUES,
+  INPUT_VISUAL,
+}
+
+const editStateOffset = [0, -100, -200, -300];
+
+const AddSongModal = (props: { freshSongEdit: boolean }) => {
+  const [currentEditState, setCurrentEditState] = useState<ECurrentEditState>(
+    props.freshSongEdit
+      ? ECurrentEditState.INPUT_SONG
+      : ECurrentEditState.EDIT_STRINGS
+  );
+  // const router = useRouter();
+  useEffect(() => {
+    /* button availability */
+  }, [currentEditState]);
   return (
     <div
       id="add-song-modal-container"
@@ -33,7 +47,8 @@ const AddSongModal = () => {
             </span>
           </button>
           <h2 className="flex-1 flex justify-center items-center text-lg font-bold text-white">
-            {router.query.step === '1' && 'Add a file'}
+            {currentEditState === ECurrentEditState.INPUT_SONG &&
+              'Add an audio file'}
           </h2>
           <button className="flex-[0_0_20%] text-white text-xs overflow-hidden">
             <span className="inline-block">
@@ -48,15 +63,29 @@ const AddSongModal = () => {
             <span></span>
           </button>
         </div>
-        {router.query.step === '1' && (
-          <InjectNewSong className={classForSteps} />
-        )}
+        <div
+          className="overflow-visible flex-1 w-full flex flex-nowrap transition-transform"
+          style={{
+            transform: `translateX(${editStateOffset[currentEditState]}%)`,
+          }}
+        >
+          <InjectNewSong
+            className="box-border flex-[0_0_100%] overflow-auto p-2"
+            /* switch to the next pane */
+            successCallback={() =>
+              setCurrentEditState(ECurrentEditState.EDIT_STRINGS)
+            }
+          />
+          <div className="flex-[0_0_100%] bg-red-700 text-white">
+            auiaygyaygayhfehyeffueuiehueduiueieshues
+          </div>
+          <div className="flex-[0_0_100%] bg-slate-400 relative"></div>
+        </div>
       </div>
       <Player
         style={{
           /* used to show the player by disable the transform property */
-          transform:
-            router.query.step && router.query.step !== '1' ? 'none' : undefined,
+          transform: currentEditState ? 'none' : undefined,
         }}
         className="absolute bottom-5 w-[90%] left-[5%] h-12 bg-app-modal-xl-lighter drop-shadow-lg translate-y-32 transition-transform z-10"
       />

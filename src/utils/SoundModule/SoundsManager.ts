@@ -5,9 +5,9 @@ import SparkMD5 from 'spark-md5';
 
 import type {
   ISoundsBlobStoreValue,
-  ISoundsInfoStoreValue,
   ISoundsManagerCallbacks,
   ISoundsManagerConstructorArgs,
+  ISoundsManagerCurrentSound,
   ISoundsManagerDB,
 } from '../interfaces/SoundsManagerInterfaces';
 
@@ -20,13 +20,7 @@ export default class SoundsManager {
    * assets needs to be flushed */
   private needsToBeDestructed = false;
 
-  public currentSound: Partial<{
-    soundInfoKey?: string;
-    soundInfoStore?: string;
-    soundInfoData: Partial<ISoundsInfoStoreValue>;
-    soundSourceData: Partial<ISoundsBlobStoreValue>;
-    visualSourceData: Partial<ISoundsBlobStoreValue>;
-  }> = {};
+  public currentSound: ISoundsManagerCurrentSound = {};
 
   /* audiocontext related */
   public audioContext: AudioContext | undefined = undefined;
@@ -40,6 +34,13 @@ export default class SoundsManager {
   private reverbProcessor: Reverb | undefined = undefined;
 
   private muffledProcessor: BiquadFilterNode | undefined = undefined;
+
+  /* player related */
+  private audioPosition = 0;
+
+  private audioStartTime = 0;
+
+  private audioIsPlaying = false;
 
   /* callbacks */
   private afterInitData: ISoundsManagerCallbacks;
@@ -55,6 +56,9 @@ export default class SoundsManager {
       errorCallback: args.errorCallback || (() => {}),
       successCallbackArgs: args.successCallbackArgs || [],
       errorCallbackArgs: args.errorCallbackArgs || [],
+      setCurrentSoundCallback: args.setCurrentSoundCallback || (() => {}),
+      setSoundReadyCallback: args.setSoundReadyCallback || (() => {}),
+      setPlayStateCallback: args.setPlayStateCallback || (() => {}),
     };
 
     this.dbVersion = args.dbVersion;
@@ -180,10 +184,28 @@ export default class SoundsManager {
     if (this.needsToBeDestructed) this.freeData();
   }
 
+  /* reset to cut the audio when leaving the player component */
+  public cutAudio(externalCall?: boolean) {
+    try {
+      this.audioSourceInput?.disconnect();
+      this.audioIsPlaying = false;
+      this.afterInitData.setPlayStateCallback(this.audioIsPlaying);
+      /* the muffled should be disconnected but it gives a eery mood to
+       * just hear the reverb alone when the source input disconnects
+       * i love it haha */
+      // this.muffledProcessor?.disconnect();
+      this.audioSourceInput = undefined;
+      if (externalCall) this.afterInitData.setSoundReadyCallback(false);
+    } catch (e: any) { console.log(e.message); } //eslint-disable-line
+  }
+
   /* destructor utils */
   private freeData() {
     this.songsDb?.close();
     this.audioContext?.close();
+    this.afterInitData.setSoundReadyCallback(false);
+    this.afterInitData.setPlayStateCallback(false);
+    this.afterInitData.setCurrentSoundCallback({});
   }
 
   public destructor() {
@@ -191,66 +213,113 @@ export default class SoundsManager {
     if (this.isFullyInit) this.freeData();
   }
 
+  public play(position?: number) {
+    if (this.audioContext?.state !== 'running') this.audioContext?.resume();
+    this.setAudioSourceInput();
+    this.linkingProcesses();
+    /* seeking update for resuming */
+    this.audioPosition = position || this.audioPosition;
+    this.audioStartTime =
+      this.audioContext!.currentTime - (this.audioPosition || 0);
+    this.audioSourceInput!.start(
+      this.audioContext!.currentTime,
+      this.audioPosition
+    );
+    this.audioIsPlaying = true;
+    this.afterInitData.setPlayStateCallback(this.audioIsPlaying);
+  }
+
+  public pause() {
+    /* position memorization for resuming */
+    this.audioSourceInput!.stop(0);
+    this.audioIsPlaying = false;
+    this.afterInitData.setPlayStateCallback(this.audioIsPlaying);
+    this.audioPosition = this.audioContext!.currentTime - this.audioStartTime;
+  }
+
+  /* progressbar interaction */
+  public updateAudioPosition(percentage: number) {
+    if (percentage === 100) this.audioSourceInput!.onended!({} as any);
+    else {
+      /* the received percentage is divided by 100 bc it needs to be a factor */
+      const newPosition = (percentage / 100) * this.audioBufferInput!.duration;
+      if (this.audioIsPlaying) this.play(newPosition);
+      else this.audioPosition = newPosition;
+    }
+  }
+
   /* file creation utils */
   public async addFile(arrayBuffer: ArrayBuffer, name: string) {
-    this.currentSound = {};
-    this.currentSound.soundInfoStore = 'sounds-source-blob';
-    this.currentSound.soundSourceData = {
+    // this.currentSound = {};
+    const tempCurrentSound: ISoundsManagerCurrentSound = {};
+    tempCurrentSound.soundInfoStore = 'sounds-source-blob';
+    tempCurrentSound.soundSourceData = {
       data: arrayBuffer,
       hash: SparkMD5.ArrayBuffer.hash(arrayBuffer),
     };
-    this.currentSound.soundInfoData = {
+    tempCurrentSound.soundInfoData = {
       name,
-      blobAudioHash: this.currentSound.soundSourceData.hash,
+      blobAudioHash: tempCurrentSound.soundSourceData.hash,
     };
 
     /* injects the arraybuffer in the database if it doesn't exists */
     if (
       !(await this.songsDb?.get(
         'sounds-source-blob',
-        this.currentSound.soundSourceData.hash!
+        tempCurrentSound.soundSourceData.hash!
       ))
     )
       await this.songsDb?.add(
         'sounds-source-blob',
-        this.currentSound.soundSourceData as ISoundsBlobStoreValue
+        tempCurrentSound.soundSourceData as ISoundsBlobStoreValue
       );
-    /* create a new entry for the sound infos in the temporary store
-     * then assign the returned index in the local object for further
+    /* creates a new entry for the sound infos in the temporary store
+     * then assigns the returned index in the local object for further
      * edits */
-    this.currentSound.soundInfoKey = await this.songsDb?.add(
+    tempCurrentSound.soundInfoKey = await this.songsDb?.add(
       'sounds-temp-info',
-      this.currentSound.soundInfoData
+      tempCurrentSound.soundInfoData
     );
 
     /* from array buffer to audio buffer */
     this.audioBufferInput = await this.audioContext!.decodeAudioData(
       arrayBuffer
     );
-    /* then we make a buffer source to use with the api and we link the
-     * processes */
-    this.setAudioSourceInput();
-    this.linkingProcesses();
+    tempCurrentSound.soundBufferDuration = this.audioBufferInput.duration;
+    /* reset player data in case a sound was played before */
+    this.audioPosition = 0;
+    this.audioStartTime = 0;
+
+    /* updates currentSound w/ the fresh data */
+    this.afterInitData.setCurrentSoundCallback(tempCurrentSound);
+    /* unlocks the player component */
+    this.afterInitData.setSoundReadyCallback(true);
   }
 
-  /* misc utils */
-  // private checkIfAudioContextIsRunning() {
-  //   if (this.audioContext?.state !== 'running') this.audioContext?.resume();
-  // }
-
   private setAudioSourceInput() {
-    if (this.audioSourceInput)
-      try {
-        this.audioSourceInput.disconnect();
-      } catch (e: any) { console.log(e.message); } //eslint-disable-line
+    this.cutAudio();
     this.audioSourceInput = this.audioContext!.createBufferSource();
+    this.audioSourceInput.onended = () => {
+      /* onended triggers when putting pause so this makes sure it doesn't
+       * reset in this scenario */
+      if (!this.audioIsPlaying) return;
+      /* reset to the start when the audio ends */
+      try {
+        this.audioSourceInput!.stop(0);
+      } catch {} //eslint-disable-line
+      this.audioIsPlaying = false;
+      this.afterInitData.setPlayStateCallback(this.audioIsPlaying);
+      this.audioPosition = 0;
+      this.audioStartTime = 0;
+    };
     this.audioSourceInput.buffer = this.audioBufferInput!;
+    this.audioSourceInput.playbackRate.value = 0.8;
   }
 
   private linkingProcesses() {
     /* the reverb process struggles if the source input is connected while
      * linking the processes */
-    this.audioSourceInput!.disconnect();
+    // this.audioSourceInput?.disconnect();
     /* process connection link */
     this.reverbProcessor!.connect(this.audioSourceInput!)
       .connect(this.phaseVocoderProcessor!)
@@ -258,5 +327,17 @@ export default class SoundsManager {
       .connect(this.audioContext!.destination);
 
     // this.audioSourceInput.start();
+  }
+
+  public contextUpdateCurrentSound(currentSound: ISoundsManagerCurrentSound) {
+    this.currentSound = currentSound;
+  }
+
+  public getCurrentPercentage() {
+    return (
+      (this.audioIsPlaying
+        ? this.audioContext!.currentTime - this.audioStartTime
+        : this.audioPosition) / this.audioBufferInput!.duration
+    );
   }
 }

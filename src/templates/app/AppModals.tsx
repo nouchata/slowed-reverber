@@ -14,7 +14,8 @@ const AppModals = () => {
   /* used to get app-related error messages */
   const { appData, setAppData } = useContext(AppDataContext);
   /* used to get soundsmanager-related error messages */
-  const { soundsManagerError } = useContext(SoundsManagerContext);
+  const { soundsManagerError, setCurrentSound } =
+    useContext(SoundsManagerContext);
 
   const modalContainerRef = useRef<HTMLDivElement>(null);
   /* this tl is used to fade in/out the background of the modal container */
@@ -104,7 +105,7 @@ const AppModals = () => {
     /* query parameter to set a xl modal */
     if (router.query.md) {
       modalContainerTl.current.play();
-      /* ensures that the invalidates in the draggable event doesn't break the
+      /* ensures that the invalidate() in the draggable event doesn't break the
        * animation flow */
       gsap
         .set(modalXlRef.current, { y: 0 })
@@ -112,15 +113,25 @@ const AppModals = () => {
       /* this part handles the dynamic import of the modal files and the extra logic
        * needed by them */
       if (router.query.md === 'addSong') {
-        /* switch to the step 1 (or the correct one) if there's none given */
-        if (!router.query.step)
-          router.push(
-            { pathname: '/app/songs/', query: { md: 'addSong', step: '1' } },
-            undefined,
-            { shallow: true }
-          );
+        /* this will create a new entry in the addsongmodal */
+        setCurrentSound!({});
         setXLDynamicImport(
           dynamic(() => import('./addSong/AddSongModal'), { suspense: true })
+        );
+      } else if (router.query.md === 'editSong') {
+        setXLDynamicImport(
+          dynamic(
+            () =>
+              import('./addSong/AddSongModal')
+                .then(async (modal) => {
+                  // await new Promise((resolve) =>
+                  //   setTimeout(() => resolve(1), 3000)
+                  // );
+                  return modal;
+                })
+                .then((modal) => modal),
+            { suspense: true }
+          )
         );
       }
     } else {
@@ -232,8 +243,8 @@ const AppModals = () => {
             id="add-display-xl-modal-container"
             className="w-full h-full box-border pt-[20px] overflow-hidden"
           >
-            {/* modal pages are loaded aside w/ suspense & next/dynamic for bundle size reduction */}
             {XLDynamicImport && (
+              /* modal pages are loaded aside w/ suspense & next/dynamic for bundle size reduction */
               <Suspense
                 fallback={
                   <div className="w-full h-full flex justify-center items-center overflow-hidden animate-pulse">
@@ -241,7 +252,10 @@ const AppModals = () => {
                   </div>
                 }
               >
-                <XLDynamicImport />
+                <XLDynamicImport
+                  /* freshSongEdit is used w/ AddSongModal to show or not the input file prompt */
+                  freshSongEdit={router.query.md === 'addSong'}
+                />
               </Suspense>
             )}
           </div>

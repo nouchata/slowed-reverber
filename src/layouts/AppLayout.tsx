@@ -41,7 +41,7 @@ const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
           /* opens the modal when a file is dragged on the screen */
           if (router.asPath === '/app/songs/')
             router.push(
-              { pathname: '/app/songs', query: { md: 'addSong', step: '1' } },
+              { pathname: '/app/songs', query: { md: 'addSong' } },
               undefined,
               { shallow: true }
             );

@@ -1,16 +1,31 @@
 import type { DBSchema } from 'idb';
+import type { Dispatch, SetStateAction } from 'react';
 
 export type ISoundsManagerCallbacks = {
-  successCallback?: Function;
-  successCallbackArgs?: Array<any>;
-  errorCallback?: Function;
-  errorCallbackArgs?: Array<any>;
+  successCallback: Function;
+  successCallbackArgs: Array<any>;
+  errorCallback: Function;
+  errorCallbackArgs: Array<any>;
+  setCurrentSoundCallback: Dispatch<SetStateAction<ISoundsManagerCurrentSound>>;
+  setSoundReadyCallback: Dispatch<SetStateAction<boolean>>;
+  setPlayStateCallback: Dispatch<SetStateAction<boolean>>;
 };
 
-export type ISoundsManagerConstructorArgs = {
-  /* if upgrade db is needed (i.e. the schema has changed) */
-  dbVersion?: number;
-} & ISoundsManagerCallbacks;
+export type ISoundsManagerConstructorArgs = Partial<
+  {
+    /* if upgrade db is needed (i.e. the schema has changed) */
+    dbVersion: number;
+  } & ISoundsManagerCallbacks
+>;
+
+export type ISoundsManagerCurrentSound = Partial<{
+  soundInfoKey: string;
+  soundInfoStore: string;
+  soundBufferDuration: number;
+  soundInfoData: Partial<ISoundsInfoStoreValue>;
+  soundSourceData: Partial<ISoundsBlobStoreValue>;
+  visualSourceData: Partial<ISoundsBlobStoreValue>;
+}>;
 
 export enum ESoundsManagerState {
   UNINITIALIZE,

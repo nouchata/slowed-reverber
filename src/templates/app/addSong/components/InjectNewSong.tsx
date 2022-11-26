@@ -5,7 +5,7 @@ import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 
-enum InputFileState {
+enum EInputFileState {
   WAITING_FOR_FILE,
   PROCESSING,
   DONE,
@@ -17,12 +17,14 @@ const buttonText = [
   'Processing done',
 ];
 
-const InjectNewSong = (props?: IStylePropsInterface) => {
+const InjectNewSong = (
+  props: IStylePropsInterface & { successCallback: Function }
+) => {
   const { appData, setAppData } = useContext(AppDataContext);
   const { soundsManager } = useContext(SoundsManagerContext);
 
   const [processingFileState, setProcessingFileState] = useState(
-    InputFileState.WAITING_FOR_FILE
+    EInputFileState.WAITING_FOR_FILE
   );
 
   const [givenFile, setGivenFile] = useState<any>(undefined);
@@ -47,7 +49,7 @@ const InjectNewSong = (props?: IStylePropsInterface) => {
     if (givenFile === undefined) return;
     if (!givenFile) {
       setAppData!({ ...appData, error: 'You need to provide a file' });
-      setProcessingFileState(InputFileState.WAITING_FOR_FILE);
+      setProcessingFileState(EInputFileState.WAITING_FOR_FILE);
       setGivenFile(undefined);
       return;
     }
@@ -56,16 +58,26 @@ const InjectNewSong = (props?: IStylePropsInterface) => {
         ...appData,
         error: 'You need to provide an audio file',
       });
-      setProcessingFileState(InputFileState.WAITING_FOR_FILE);
+      setProcessingFileState(EInputFileState.WAITING_FOR_FILE);
       setGivenFile(undefined);
       return;
     }
     (async () => {
-      await soundsManager!.addFile(
-        await givenFile.arrayBuffer(),
-        givenFile.name.replace(/\.[^.]*$/, '')
-      );
-      setProcessingFileState(InputFileState.DONE);
+      await soundsManager!
+        .addFile(
+          await givenFile.arrayBuffer(),
+          givenFile.name.replace(/\.[^.]*$/, '')
+        )
+        .then(() => {
+          setProcessingFileState(EInputFileState.DONE);
+          props.successCallback();
+        })
+        .catch((reason) => {
+          /* error handling if addFile fails */
+          setAppData!({ ...appData, error: reason.message });
+          setProcessingFileState(EInputFileState.WAITING_FOR_FILE);
+          setGivenFile(undefined);
+        });
     })();
   }, [givenFile]);
   useEffect(() => {
@@ -86,12 +98,14 @@ const InjectNewSong = (props?: IStylePropsInterface) => {
         disabled={!!processingFileState}
         onChange={(e) => {
           if (!processingFileState) {
-            setProcessingFileState(InputFileState.PROCESSING);
+            setProcessingFileState(EInputFileState.PROCESSING);
             const fileList = (e.target as HTMLInputElement).files;
             if (!fileList) setGivenFile(null);
             else if (fileList[0]) setGivenFile(fileList[0]);
-            else setProcessingFileState(InputFileState.WAITING_FOR_FILE);
+            else setProcessingFileState(EInputFileState.WAITING_FOR_FILE);
           }
+          /* reset elem to reinput the same file in case of errors */
+          (e.target as HTMLInputElement).value = '';
         }}
       />
       <button
@@ -112,7 +126,7 @@ const InjectNewSong = (props?: IStylePropsInterface) => {
           buttonRef.current!.classList.remove('text-app-primary-color');
           /* logic moved to givenfile useeffect */
           if (!processingFileState) {
-            setProcessingFileState(InputFileState.PROCESSING);
+            setProcessingFileState(EInputFileState.PROCESSING);
             setGivenFile(
               e.dataTransfer.items[0]
                 ? e.dataTransfer.items[0].getAsFile()
@@ -122,8 +136,8 @@ const InjectNewSong = (props?: IStylePropsInterface) => {
         }}
       >
         <InjectNewFile
-          animatePlusSign={processingFileState === InputFileState.PROCESSING}
-          valideFile={processingFileState === InputFileState.DONE}
+          animatePlusSign={processingFileState === EInputFileState.PROCESSING}
+          valideFile={processingFileState === EInputFileState.DONE}
           className="flex-[0_0_40%] w-full stroke-1"
         />
         <strong>
