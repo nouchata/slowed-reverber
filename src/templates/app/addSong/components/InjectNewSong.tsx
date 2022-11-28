@@ -18,13 +18,13 @@ const buttonText = [
 ];
 
 const InjectNewSong = (
-  props: IStylePropsInterface & { successCallback: Function }
+  props: IStylePropsInterface & { successCallback: Function; isActive: boolean }
 ) => {
   const { appData, setAppData } = useContext(AppDataContext);
   const { soundsManager } = useContext(SoundsManagerContext);
 
   const [processingFileState, setProcessingFileState] = useState(
-    EInputFileState.WAITING_FOR_FILE
+    props.isActive ? EInputFileState.WAITING_FOR_FILE : EInputFileState.DONE
   );
 
   const [givenFile, setGivenFile] = useState<any>(undefined);
@@ -66,6 +66,7 @@ const InjectNewSong = (
       await soundsManager!
         .addFile(
           await givenFile.arrayBuffer(),
+          /* removes the extension */
           givenFile.name.replace(/\.[^.]*$/, '')
         )
         .then(() => {
@@ -111,6 +112,7 @@ const InjectNewSong = (
       <button
         ref={buttonRef}
         className={`w-full h-full flex flex-col justify-center gap-4 items-center -outline-offset-2 outline-current outline-2`}
+        disabled={!!processingFileState}
         onDragEnter={() => {
           if (!enterAndLeaveEventCount.current)
             buttonRef.current!.classList.add('text-app-primary-color');

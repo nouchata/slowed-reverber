@@ -59,7 +59,9 @@ const Player = (props: IStylePropsInterface) => {
       >
         <PlayerControlState className="w-full h-full" isPaused={!playState} />
       </button>
-      <PlayerProgressState className="flex-1" />
+      <div className="flex-1 px-[5%]">
+        <PlayerProgressState className="w-full h-full" />
+      </div>
       <span
         id="player-sound-total-time"
         className="flex-[0_0_80px] flex justify-center items-center"

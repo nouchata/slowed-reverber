@@ -30,8 +30,11 @@ const PlayerProgressState = (props: IStylePropsInterface) => {
 
     /* mouse logic to have some ux */
     playerProgressRef.current!.onMouseUpCallback = function onMouseUpCallback(
-      this: SVGSVGElement & IProgressBarProps
+      this: SVGSVGElement & IProgressBarProps,
+      e: MouseEvent
     ) {
+      if (!this.isDragging) return;
+      this.setNewPercentage(e.clientX, false, true);
       this.isDragging = false;
     }.bind(playerProgressRef.current!);
 
@@ -41,7 +44,7 @@ const PlayerProgressState = (props: IStylePropsInterface) => {
         e: MouseEvent
       ) {
         if (!this.isDragging) return;
-        this.setNewPercentage(e.clientX);
+        this.setNewPercentage(e.clientX, false, false);
       }.bind(playerProgressRef.current!);
 
     /* useRef seems to unload before the cleanup callback of useEffect so I
@@ -84,9 +87,9 @@ const PlayerProgressState = (props: IStylePropsInterface) => {
       if (runtime && isCurrentSoundReady) {
         if (!playerProgressRef.current!.isDragging)
           playerProgressRef.current!.setNewPercentage(
-            90 * soundsManager!.getCurrentPercentage() + 5,
+            soundsManager!.getCurrentPercentage() * 100,
             true,
-            true
+            false
           );
         /* requestAnimationFrame cpu usage is crazy, setInterval messes w/ gsap so here's the fix */
         await new Promise((resolve) => {
@@ -105,35 +108,22 @@ const PlayerProgressState = (props: IStylePropsInterface) => {
       this: SVGSVGElement & IProgressBarProps,
       value: number,
       isAlreadyAPercentage?: boolean,
-      dontTriggersVisualUpdate?: boolean
+      triggersPlaybackUpdate?: boolean
     ) {
-      /* this condition makes sure that if the value is < 0 or > 100, we don't
-       * trigger uselessly the update on the soundsmanager since the value is
-       * capped anyway (it also prevents audio glitches) */
-      if (
-        !isAlreadyAPercentage &&
-        !dontTriggersVisualUpdate &&
-        (value - playerProgressRef.current!.boundingClientRect.x < 0 ||
-          value -
-            (playerProgressRef.current!.boundingClientRect.x +
-              playerProgressRef.current!.boundingClientRect.width) >
-            0)
-      )
-        return;
       /* we need to work relatively based on the x offset of the svg, the
-       * percentage is then capped between 5 and 95 */
+       * percentage is then capped between 0 and 100 */
       const newPercentage = isAlreadyAPercentage
-        ? Math.min(Math.max(5, value), 95)
+        ? Math.min(Math.max(0, value), 100)
         : Math.min(
             Math.max(
-              5,
+              0,
               ((value - playerProgressRef.current!.boundingClientRect.x) *
                 100) /
                 (playerProgressRef.current!.boundingClientRect.x +
                   playerProgressRef.current!.boundingClientRect.width -
                   playerProgressRef.current!.boundingClientRect.x)
             ),
-            95
+            100
           );
       playerProgressRef.current!.circleRef.setAttribute(
         'cx',
@@ -143,8 +133,8 @@ const PlayerProgressState = (props: IStylePropsInterface) => {
         'x2',
         `${newPercentage}%`
       );
-      if (isCurrentSoundReady && !dontTriggersVisualUpdate)
-        soundsManager!.updateAudioPosition(((newPercentage - 5) * 100) / 90);
+      if (isCurrentSoundReady && triggersPlaybackUpdate)
+        soundsManager!.updateAudioPosition(newPercentage);
     };
     return () => {
       runtime = false;
@@ -153,16 +143,16 @@ const PlayerProgressState = (props: IStylePropsInterface) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      className={`cursor-pointer ${props.className}`}
+      className={`cursor-pointer overflow-visible ${props.className}`}
       stroke="currentColor"
       strokeWidth="1"
       strokeLinecap="round"
       aria-labelledby="title"
       ref={playerProgressRef}
-      /* triggers the dragging event & also acts as onClick */
-      onMouseDown={(e) => {
+      /* triggers the dragging event ; the onClick logic is set to the
+       * mouseUp event */
+      onMouseDown={() => {
         playerProgressRef.current!.isDragging = true;
-        playerProgressRef.current?.setNewPercentage(e.clientX);
       }}
       /* touch logic is butter compared as the mouse one */
       onTouchStartCapture={() => {
@@ -170,25 +160,32 @@ const PlayerProgressState = (props: IStylePropsInterface) => {
       }}
       onTouchMoveCapture={(e) => {
         playerProgressRef.current?.setNewPercentage(
-          e.targetTouches.item(0)!.clientX
+          e.targetTouches.item(0)!.clientX,
+          false,
+          false
         );
       }}
-      onTouchEndCapture={() => {
+      onTouchEndCapture={(e) => {
+        playerProgressRef.current?.setNewPercentage(
+          e.changedTouches.item(0)!.clientX,
+          false,
+          true
+        );
         playerProgressRef.current!.isDragging = false;
       }}
     >
       <title>Current progress of the playback</title>
-      <line x1="5%" x2="95%" y1="50%" y2="50%" fill="none" />
+      <line x1="0%" x2="100%" y1="50%" y2="50%" fill="none" />
       <line
         ref={underlineRef}
-        x1="5%"
-        x2="5%"
+        x1="0%"
+        x2="0%"
         y1="50%"
         y2="50%"
         fill="none"
         strokeWidth="3"
       />
-      <circle ref={circleRef} cy="50%" cx="5%" r="7" fill="currentColor" />
+      <circle ref={circleRef} cy="50%" cx="0%" r="7" fill="currentColor" />
     </svg>
   );
 };

@@ -75,6 +75,7 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
             successCallback={() =>
               setCurrentEditState(ECurrentEditState.EDIT_STRINGS)
             }
+            isActive={currentEditState === ECurrentEditState.INPUT_SONG}
           />
           <div className="flex-[0_0_100%] bg-red-700 text-white">
             auiaygyaygayhfehyeffueuiehueduiueieshues

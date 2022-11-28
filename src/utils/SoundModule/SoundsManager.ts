@@ -218,7 +218,7 @@ export default class SoundsManager {
     this.setAudioSourceInput();
     this.linkingProcesses();
     /* seeking update for resuming */
-    this.audioPosition = position || this.audioPosition;
+    this.audioPosition = position ?? this.audioPosition;
     this.audioStartTime =
       this.audioContext!.currentTime - (this.audioPosition || 0);
     this.audioSourceInput!.start(
@@ -252,7 +252,7 @@ export default class SoundsManager {
   public async addFile(arrayBuffer: ArrayBuffer, name: string) {
     // this.currentSound = {};
     const tempCurrentSound: ISoundsManagerCurrentSound = {};
-    tempCurrentSound.soundInfoStore = 'sounds-source-blob';
+    tempCurrentSound.soundInfoStore = 'sounds-temp-info';
     tempCurrentSound.soundSourceData = {
       data: arrayBuffer,
       hash: SparkMD5.ArrayBuffer.hash(arrayBuffer),
@@ -333,6 +333,7 @@ export default class SoundsManager {
     this.currentSound = currentSound;
   }
 
+  /* the returned percentage is not /100 but /1 */
   public getCurrentPercentage() {
     return (
       (this.audioIsPlaying
