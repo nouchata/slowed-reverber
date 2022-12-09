@@ -1,8 +1,8 @@
-import type { Dispatch, SetStateAction } from 'react';
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 import type { ISoundsManagerCurrentSound } from '../interfaces/SoundsManagerInterfaces';
 import SoundsManager from '../SoundModule/SoundsManager';
+import { AppDataContext } from './AppDataContext';
 
 type ISoundsManagerContextValues = {
   /* if an error occurs, it will be filled here */
@@ -17,8 +17,6 @@ type ISoundsManagerContextValues = {
   soundsManager: SoundsManager;
   /* the current sound instance */
   currentSound: ISoundsManagerCurrentSound;
-  /* setter for the current sound instance */
-  setCurrentSound: Dispatch<SetStateAction<ISoundsManagerCurrentSound>>;
 };
 
 const SoundsManagerContext = createContext<
@@ -26,7 +24,6 @@ const SoundsManagerContext = createContext<
 >({});
 
 const SoundsManagerProvider = (props: { children: any }) => {
-  const [soundsManagerError, setSoundsManagerError] = useState('');
   const [isSoundsManagerInit, setIsSoundsManagerInit] = useState(false);
   const [isCurrentSoundReady, setIsCurrentSoundReady] = useState(false);
   const [playState, setPlayState] = useState(false);
@@ -34,34 +31,37 @@ const SoundsManagerProvider = (props: { children: any }) => {
     {}
   );
   const [soundsManager, setSoundsManager] = useState<SoundsManager>();
+  const { appData, setAppData } = useContext(AppDataContext);
   /* soundsManager cleanup */
   useEffect(() => {
     const sm = new SoundsManager({
-      errorCallback: setSoundsManagerError,
       successCallback: setIsSoundsManagerInit,
       successCallbackArgs: [true],
       setCurrentSoundCallback: setCurrentSound,
       setSoundReadyCallback: setIsCurrentSoundReady,
       setPlayStateCallback: setPlayState,
+      setAppDataCallback: setAppData,
+      appData,
     });
-    sm.contextUpdateCurrentSound(currentSound);
+    sm.resetCurrentSound();
     setSoundsManager(sm);
     return () => sm.destructor();
   }, []);
-  /* keep the soundsmanager up with the currentSound state */
+  /* keep the soundsmanager up with the currentSound and appData state */
   useEffect(() => {
     soundsManager?.contextUpdateCurrentSound(currentSound);
-  }, [currentSound]);
+  }, [currentSound, soundsManager]);
+  useEffect(() => {
+    if (appData) soundsManager?.contextUpdateCurrentAppData(appData);
+  }, [appData]);
   return (
     <SoundsManagerContext.Provider
       value={{
-        soundsManagerError,
         isSoundsManagerInit,
         isCurrentSoundReady,
         playState,
         soundsManager,
         currentSound,
-        setCurrentSound,
       }}
     >
       {props.children}

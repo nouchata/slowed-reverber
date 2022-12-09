@@ -14,8 +14,7 @@ const AppModals = () => {
   /* used to get app-related error messages */
   const { appData, setAppData } = useContext(AppDataContext);
   /* used to get soundsmanager-related error messages */
-  const { soundsManagerError, setCurrentSound } =
-    useContext(SoundsManagerContext);
+  const { soundsManager } = useContext(SoundsManagerContext);
 
   const modalContainerRef = useRef<HTMLDivElement>(null);
   /* this tl is used to fade in/out the background of the modal container */
@@ -113,8 +112,8 @@ const AppModals = () => {
       /* this part handles the dynamic import of the modal files and the extra logic
        * needed by them */
       if (router.query.md === 'addSong') {
-        /* this will create a new entry in the addsongmodal */
-        setCurrentSound!({});
+        /* this will put the addsongmodal in new entry mode */
+        soundsManager?.resetCurrentSound();
         setXLDynamicImport(
           dynamic(() => import('./addSong/AddSongModal'), { suspense: true })
         );
@@ -142,10 +141,10 @@ const AppModals = () => {
   }, [router.query.md]);
 
   useEffect(() => {
-    if (appData?.error) {
+    if (appData?.error.type === 'normal') {
       if (timeoutErrorModal.current) clearTimeout(timeoutErrorModal.current);
       timeoutErrorModal.current = setTimeout(
-        () => setAppData!({ ...appData, error: undefined }),
+        () => setAppData!({ error: { type: 'none', value: '' } }),
         4000
       );
     } else {
@@ -158,19 +157,17 @@ const AppModals = () => {
       <div
         id="app-display-error-modal"
         className="absolute w-4/5 top-6 left-[10%] text-white bg-red-600 cursor-pointer select-none break-words box-border p-3 rounded drop-shadow-md transition-all -translate-y-20 z-40"
-        style={
-          appData?.error && !appData.criticalError ? { transform: 'none' } : {}
-        }
+        style={appData?.error.type === 'normal' ? { transform: 'none' } : {}}
         onClick={() => {
           /* a click on the error modal hides it */
           clearTimeout(timeoutErrorModal.current);
           timeoutErrorModal.current = undefined;
-          setAppData!({ ...appData, error: undefined });
+          setAppData!({ error: { type: 'none', value: '' } });
         }}
       >
-        {appData?.error && !appData.criticalError ? (
+        {appData?.error.type === 'normal' ? (
           <>
-            <strong>Error:</strong> {appData.error}
+            <strong>Error:</strong> {appData.error.value}
           </>
         ) : (
           <></>
@@ -178,31 +175,33 @@ const AppModals = () => {
       </div>
       {/* the medium modal is also used for critical error, in the case of critical error, it can't be closed and will be showed
        * with a slightly different style */}
-      {(appData?.mediumModalText || soundsManagerError) && (
+      {(appData?.mediumModalText || appData?.error.type === 'critical') && (
         <div
           id="app-display-medium-modal"
           className="absolute w-full h-full bg-[rgba(0,0,0,0.5)] z-50 flex justify-center items-center"
         >
           <div
             className={`${
-              soundsManagerError
+              appData.error.type === 'critical'
                 ? 'bg-app-primary-color'
                 : 'bg-app-modal-xl-lighter'
             } flex-[0_0_320px] text-white box-border px-2 drop-shadow-lg rounded flex flex-col`}
           >
-            {soundsManagerError && (
+            {appData.error.type === 'critical' && (
               <h1 className="w-full text-center pt-4 font-bold select-none">
                 Critical error
               </h1>
             )}
             <p className="w-full text-center py-4 break-words">
-              {soundsManagerError || appData?.mediumModalText}
+              {appData.error.type === 'critical'
+                ? appData.error.value
+                : appData.mediumModalText}
             </p>
-            {appData?.mediumModalText && !soundsManagerError && (
+            {appData.mediumModalText && appData.error.type !== 'critical' && (
               <button
                 className="w-full py-2 border-t-2 border-t-app-modal-xl-background"
                 onClick={() => {
-                  setAppData!({ ...appData, mediumModalText: '' });
+                  setAppData!({ mediumModalText: '' });
                 }}
               >
                 Close

@@ -15,7 +15,7 @@ const Player = (props: IStylePropsInterface) => {
     playState,
     currentSound,
   } = useContext(SoundsManagerContext);
-  const { appData, setAppData } = useContext(AppDataContext);
+  const { setAppData } = useContext(AppDataContext);
   /* time formatting */
   const [minutesSeconds, setMinutesSeconds] = useState<Array<string>>([
     '--',
@@ -34,7 +34,7 @@ const Player = (props: IStylePropsInterface) => {
       (currentSound?.soundInfoData?.speedValue || 1);
     const minutes = Math.floor(totalDuration / 60);
     const seconds = Math.floor(totalDuration - minutes * 60);
-    if (minutes && seconds)
+    if (!Number.isNaN(minutes) && !Number.isNaN(seconds))
       setMinutesSeconds([
         String(minutes).padStart(2, '0'),
         String(seconds).padStart(2, '0'),
@@ -49,10 +49,12 @@ const Player = (props: IStylePropsInterface) => {
       <button
         onClick={() => {
           try {
-            if (!playState) soundsManager!.play();
-            else soundsManager!.pause();
+            if (!playState) soundsManager?.play();
+            else soundsManager?.pause();
           } catch (e: any) {
-            setAppData!({ ...appData, error: e.message });
+            setAppData!({
+              error: { type: 'normal', value: e.message },
+            });
           }
         }}
         className="flex-[0_0_80px] flex justify-center items-center box-border py-2"
@@ -69,13 +71,7 @@ const Player = (props: IStylePropsInterface) => {
         {minutesSeconds[0]}:{minutesSeconds[1]}
       </span>
       {!(isCurrentSoundReady && isSoundsManagerInit) && (
-        <div
-          className="absolute w-full h-full rounded opacity-80"
-          style={{
-            background:
-              'repeating-linear-gradient(-55deg,#222,#222 10px,#333 10px,#333 20px)',
-          }}
-        ></div>
+        <div className="absolute w-full h-full rounded opacity-80 bg-app-player-disabled"></div>
       )}
     </div>
   );

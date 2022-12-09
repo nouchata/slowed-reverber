@@ -1,26 +1,30 @@
 import type { DBSchema } from 'idb';
 import type { Dispatch, SetStateAction } from 'react';
 
+import type { IAppData } from '../contexts/AppDataContext';
+
 export type ISoundsManagerCallbacks = {
   successCallback: Function;
   successCallbackArgs: Array<any>;
-  errorCallback: Function;
-  errorCallbackArgs: Array<any>;
   setCurrentSoundCallback: Dispatch<SetStateAction<ISoundsManagerCurrentSound>>;
   setSoundReadyCallback: Dispatch<SetStateAction<boolean>>;
   setPlayStateCallback: Dispatch<SetStateAction<boolean>>;
+  setAppDataCallback: Dispatch<Partial<IAppData>>;
 };
 
 export type ISoundsManagerConstructorArgs = Partial<
   {
     /* if upgrade db is needed (i.e. the schema has changed) */
     dbVersion: number;
+    /* i may need to evaluate appData (for config) so i'm
+     * passing it to the sm (may be removed) */
+    appData: Partial<IAppData>;
   } & ISoundsManagerCallbacks
 >;
 
 export type ISoundsManagerCurrentSound = Partial<{
   soundInfoKey: string;
-  soundInfoStore: string;
+  soundInfoStore: 'sounds-info' | 'sounds-temp-info';
   soundBufferDuration: number;
   soundInfoData: Partial<ISoundsInfoStoreValue>;
   soundSourceData: Partial<ISoundsBlobStoreValue>;
@@ -37,7 +41,7 @@ export enum ESoundsManagerState {
 
 /* sounds-info store elements' content */
 export type ISoundsInfoStoreValue = {
-  creationDate: Date;
+  creationDate: number;
   /* the blob hashes identifie the assets in the other stores since multiple edit instances can share it */
   blobAudioHash: string;
   blobVisualHash: string;

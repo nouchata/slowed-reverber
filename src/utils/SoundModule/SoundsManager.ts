@@ -3,8 +3,10 @@ import type { IDBPDatabase } from 'idb';
 import { openDB } from 'idb';
 import SparkMD5 from 'spark-md5';
 
+import type { IAppData } from '../contexts/AppDataContext';
 import type {
   ISoundsBlobStoreValue,
+  ISoundsInfoStoreValue,
   ISoundsManagerCallbacks,
   ISoundsManagerConstructorArgs,
   ISoundsManagerCurrentSound,
@@ -21,6 +23,8 @@ export default class SoundsManager {
   private needsToBeDestructed = false;
 
   public currentSound: ISoundsManagerCurrentSound = {};
+
+  public currentAppData: Partial<IAppData> | undefined = {};
 
   /* audiocontext related */
   public audioContext: AudioContext | undefined = undefined;
@@ -53,24 +57,22 @@ export default class SoundsManager {
   constructor(args: ISoundsManagerConstructorArgs) {
     this.afterInitData = {
       successCallback: args.successCallback || (() => {}),
-      errorCallback: args.errorCallback || (() => {}),
       successCallbackArgs: args.successCallbackArgs || [],
-      errorCallbackArgs: args.errorCallbackArgs || [],
       setCurrentSoundCallback: args.setCurrentSoundCallback || (() => {}),
       setSoundReadyCallback: args.setSoundReadyCallback || (() => {}),
       setPlayStateCallback: args.setPlayStateCallback || (() => {}),
+      setAppDataCallback: args.setAppDataCallback || (() => {}),
     };
 
     this.dbVersion = args.dbVersion;
 
-    ((osef) => osef)(this.isFullyInit && this.songsDb);
+    this.currentAppData = args.appData;
 
     /* catch any critical error in the error callback */
     this.asyncInit().catch((reason) =>
-      this.afterInitData.errorCallback!(
-        reason.message,
-        ...this.afterInitData.errorCallbackArgs!
-      )
+      this.afterInitData.setAppDataCallback({
+        error: { type: 'critical', value: reason.message },
+      })
     );
   }
 
@@ -201,6 +203,7 @@ export default class SoundsManager {
 
   /* destructor utils */
   private freeData() {
+    this.isFullyInit = false;
     this.songsDb?.close();
     this.audioContext?.close();
     this.afterInitData.setSoundReadyCallback(false);
@@ -250,7 +253,8 @@ export default class SoundsManager {
 
   /* file creation utils */
   public async addFile(arrayBuffer: ArrayBuffer, name: string) {
-    // this.currentSound = {};
+    /* exits if the constructor threw an error */
+    if (!this.isFullyInit) return;
     const tempCurrentSound: ISoundsManagerCurrentSound = {};
     tempCurrentSound.soundInfoStore = 'sounds-temp-info';
     tempCurrentSound.soundSourceData = {
@@ -258,25 +262,26 @@ export default class SoundsManager {
       hash: SparkMD5.ArrayBuffer.hash(arrayBuffer),
     };
     tempCurrentSound.soundInfoData = {
-      name,
+      name: name || 'Unknown title',
       blobAudioHash: tempCurrentSound.soundSourceData.hash,
+      creationDate: Date.now(),
     };
 
     /* injects the arraybuffer in the database if it doesn't exists */
     if (
-      !(await this.songsDb?.get(
+      !(await this.songsDb!.get(
         'sounds-source-blob',
         tempCurrentSound.soundSourceData.hash!
       ))
     )
-      await this.songsDb?.add(
+      await this.songsDb!.add(
         'sounds-source-blob',
         tempCurrentSound.soundSourceData as ISoundsBlobStoreValue
       );
     /* creates a new entry for the sound infos in the temporary store
      * then assigns the returned index in the local object for further
      * edits */
-    tempCurrentSound.soundInfoKey = await this.songsDb?.add(
+    tempCurrentSound.soundInfoKey = await this.songsDb!.add(
       'sounds-temp-info',
       tempCurrentSound.soundInfoData
     );
@@ -331,6 +336,35 @@ export default class SoundsManager {
 
   public contextUpdateCurrentSound(currentSound: ISoundsManagerCurrentSound) {
     this.currentSound = currentSound;
+  }
+
+  public contextUpdateCurrentAppData(currentAppData: Partial<IAppData>) {
+    this.currentAppData = currentAppData;
+  }
+
+  public resetCurrentSound() {
+    this.afterInitData.setCurrentSoundCallback({});
+  }
+
+  public async updateCurrentSound(values: Partial<ISoundsInfoStoreValue>) {
+    /* basic check to prevent bad database assignation */
+    if (
+      !this.isFullyInit ||
+      !this.currentSound.soundInfoStore ||
+      !this.currentSound.soundInfoKey
+    )
+      return;
+    /* update entry */
+    await this.songsDb!.put(
+      this.currentSound.soundInfoStore,
+      values,
+      this.currentSound.soundInfoKey
+    );
+    /* then update current state if it went well */
+    this.afterInitData.setCurrentSoundCallback({
+      ...this.currentSound,
+      soundInfoData: values,
+    });
   }
 
   /* the returned percentage is not /100 but /1 */

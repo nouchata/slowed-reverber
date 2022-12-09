@@ -24,7 +24,7 @@ const dragEventPreventDefaultTriggering = (e: any) => {
 /* the global of the app (header + menu + modals) */
 const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
   const router = useRouter();
-  const { appData, setAppData } = useContext(AppDataContext);
+  const { setAppData } = useContext(AppDataContext);
   /* used to put the staticcontainer in the dom */
   const windowWidth = useWindowSize().width;
   /* a simple way to know to count the dragenter/leave events since they
@@ -46,17 +46,17 @@ const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
               { shallow: true }
             );
           /* state changing for style */
-          setAppData!({ ...appData, fileDragAndDrop: true });
+          setAppData!({ fileDragAndDrop: true });
         }}
         onDragLeave={(e) => {
           dragEventPreventDefaultTriggering(e);
           enterAndLeaveEventCount.current -= 1;
           if (!enterAndLeaveEventCount.current)
-            setAppData!({ ...appData, fileDragAndDrop: false });
+            setAppData!({ fileDragAndDrop: false });
         }}
         onDrop={(e) => {
           dragEventPreventDefaultTriggering(e);
-          setAppData!({ ...appData, fileDragAndDrop: false });
+          setAppData!({ fileDragAndDrop: false });
         }}
         onDragOver={dragEventPreventDefaultTriggering}
         onDrag={dragEventPreventDefaultTriggering}

@@ -14,6 +14,12 @@ module.exports = {
       '6xl': '4rem',
     },
     extend: {
+      backgroundImage: {
+        'app-input-disabled':
+          'repeating-linear-gradient(-55deg,#303236,#303236 10px,#2b2d31 10px,#2b2d31 20px)',
+        'app-player-disabled':
+          'repeating-linear-gradient(-55deg,#222,#222 10px,#333 10px,#333 20px)',
+      },
       colors: {
         app: {
           'primary-color': '#7E22CE',
@@ -25,6 +31,10 @@ module.exports = {
               background: '#22252A',
               lighter: '#2C2F35',
             },
+          },
+          input: {
+            border: '#636569',
+            bg: '#303236',
           },
         },
         gray: {

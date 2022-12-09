@@ -48,15 +48,16 @@ const InjectNewSong = (
     /* undefined is used for the initial state, null stands for no file given */
     if (givenFile === undefined) return;
     if (!givenFile) {
-      setAppData!({ ...appData, error: 'You need to provide a file' });
+      setAppData!({
+        error: { type: 'normal', value: 'You need to provide a file' },
+      });
       setProcessingFileState(EInputFileState.WAITING_FOR_FILE);
       setGivenFile(undefined);
       return;
     }
     if (!givenFile.type.includes('audio')) {
       setAppData!({
-        ...appData,
-        error: 'You need to provide an audio file',
+        error: { type: 'normal', value: 'You need to provide an audio file' },
       });
       setProcessingFileState(EInputFileState.WAITING_FOR_FILE);
       setGivenFile(undefined);
@@ -75,7 +76,9 @@ const InjectNewSong = (
         })
         .catch((reason) => {
           /* error handling if addFile fails */
-          setAppData!({ ...appData, error: reason.message });
+          setAppData!({
+            error: { type: 'normal', value: reason.message },
+          });
           setProcessingFileState(EInputFileState.WAITING_FOR_FILE);
           setGivenFile(undefined);
         });
@@ -90,64 +93,66 @@ const InjectNewSong = (
     else buttonRef.current!.classList.remove('outline-dashed');
   }, [appData!.fileDragAndDrop]);
   return (
-    <div className={`rounded-t-lg text-white ${props?.className}`}>
-      <input
-        ref={inputFileRef}
-        type="file"
-        accept="audio"
-        className="absolute hidden"
-        disabled={!!processingFileState}
-        onChange={(e) => {
-          if (!processingFileState) {
-            setProcessingFileState(EInputFileState.PROCESSING);
-            const fileList = (e.target as HTMLInputElement).files;
-            if (!fileList) setGivenFile(null);
-            else if (fileList[0]) setGivenFile(fileList[0]);
-            else setProcessingFileState(EInputFileState.WAITING_FOR_FILE);
-          }
-          /* reset elem to reinput the same file in case of errors */
-          (e.target as HTMLInputElement).value = '';
-        }}
-      />
-      <button
-        ref={buttonRef}
-        className={`w-full h-full flex flex-col justify-center gap-4 items-center -outline-offset-2 outline-current outline-2`}
-        disabled={!!processingFileState}
-        onDragEnter={() => {
-          if (!enterAndLeaveEventCount.current)
-            buttonRef.current!.classList.add('text-app-primary-color');
-          enterAndLeaveEventCount.current += 1;
-        }}
-        onDragLeave={() => {
-          enterAndLeaveEventCount.current -= 1;
-          if (!enterAndLeaveEventCount.current)
-            buttonRef.current!.classList.remove('text-app-primary-color');
-        }}
-        onDrop={(e) => {
-          enterAndLeaveEventCount.current -= 1;
-          buttonRef.current!.classList.remove('text-app-primary-color');
-          /* logic moved to givenfile useeffect */
-          if (!processingFileState) {
-            setProcessingFileState(EInputFileState.PROCESSING);
-            setGivenFile(
-              e.dataTransfer.items[0]
-                ? e.dataTransfer.items[0].getAsFile()
-                : null
-            );
-          }
-        }}
-      >
-        <InjectNewFile
-          animatePlusSign={processingFileState === EInputFileState.PROCESSING}
-          valideFile={processingFileState === EInputFileState.DONE}
-          className="flex-[0_0_40%] w-full stroke-1"
+    <div className={`text-white ${props?.className}`}>
+      <div className={`h-full w-full min-h-[400px]`}>
+        <input
+          ref={inputFileRef}
+          type="file"
+          accept="audio"
+          className="absolute hidden"
+          disabled={!!processingFileState}
+          onChange={(e) => {
+            if (!processingFileState) {
+              setProcessingFileState(EInputFileState.PROCESSING);
+              const fileList = (e.target as HTMLInputElement).files;
+              if (!fileList) setGivenFile(null);
+              else if (fileList[0]) setGivenFile(fileList[0]);
+              else setProcessingFileState(EInputFileState.WAITING_FOR_FILE);
+            }
+            /* reset elem to reinput the same file in case of errors */
+            (e.target as HTMLInputElement).value = '';
+          }}
         />
-        <strong>
-          {appData?.fileDragAndDrop && !processingFileState
-            ? 'Drop your file here'
-            : buttonText[processingFileState]}
-        </strong>
-      </button>
+        <button
+          ref={buttonRef}
+          className={`w-full h-full flex flex-col justify-center gap-4 items-center -outline-offset-2 outline-current outline-2`}
+          disabled={!!processingFileState}
+          onDragEnter={() => {
+            if (!enterAndLeaveEventCount.current)
+              buttonRef.current!.classList.add('text-app-primary-color');
+            enterAndLeaveEventCount.current += 1;
+          }}
+          onDragLeave={() => {
+            enterAndLeaveEventCount.current -= 1;
+            if (!enterAndLeaveEventCount.current)
+              buttonRef.current!.classList.remove('text-app-primary-color');
+          }}
+          onDrop={(e) => {
+            enterAndLeaveEventCount.current -= 1;
+            buttonRef.current!.classList.remove('text-app-primary-color');
+            /* logic moved to givenfile useeffect */
+            if (!processingFileState) {
+              setProcessingFileState(EInputFileState.PROCESSING);
+              setGivenFile(
+                e.dataTransfer.items[0]
+                  ? e.dataTransfer.items[0].getAsFile()
+                  : null
+              );
+            }
+          }}
+        >
+          <InjectNewFile
+            animatePlusSign={processingFileState === EInputFileState.PROCESSING}
+            valideFile={processingFileState === EInputFileState.DONE}
+            className="flex-[0_0_40%] w-full stroke-1"
+          />
+          <strong>
+            {appData?.fileDragAndDrop && !processingFileState
+              ? 'Drop your file here'
+              : buttonText[processingFileState]}
+          </strong>
+        </button>
+      </div>
     </div>
   );
 };

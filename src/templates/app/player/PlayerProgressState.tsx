@@ -17,6 +17,8 @@ type IProgressBarProps = {
   circleRef: SVGCircleElement;
 };
 
+/* could easily have been an input range but i wanted to try to
+ * make it from scratch */
 const PlayerProgressState = (props: IStylePropsInterface) => {
   const windowSize = useWindowSize();
   const underlineRef = useRef<SVGLineElement>(null);
@@ -85,8 +87,8 @@ const PlayerProgressState = (props: IStylePropsInterface) => {
     let runtime = true;
     const updateProgressBar = async () => {
       if (runtime && isCurrentSoundReady) {
-        if (!playerProgressRef.current!.isDragging)
-          playerProgressRef.current!.setNewPercentage(
+        if (playerProgressRef.current && !playerProgressRef.current.isDragging)
+          playerProgressRef.current.setNewPercentage(
             soundsManager!.getCurrentPercentage() * 100,
             true,
             false

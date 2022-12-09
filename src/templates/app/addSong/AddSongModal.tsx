@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import Player from '../player/Player';
+import EditStrings from './components/EditStrings';
 import InjectNewSong from './components/InjectNewSong';
 
 enum ECurrentEditState {
@@ -12,12 +13,26 @@ enum ECurrentEditState {
 
 const editStateOffset = [0, -100, -200, -300];
 
+const editStateTitle = ['Add an audio file', 'Edit metadata', 'Tweak values'];
+
+/* left is previous, right is next */
+const editStateBtnAvailability = [
+  [false, false],
+  [false, true],
+  [true, false],
+];
+
 const AddSongModal = (props: { freshSongEdit: boolean }) => {
   const [currentEditState, setCurrentEditState] = useState<ECurrentEditState>(
     props.freshSongEdit
       ? ECurrentEditState.INPUT_SONG
       : ECurrentEditState.EDIT_STRINGS
   );
+  const [previousBtnCallback /* , setPreviousBtnCallback */] =
+    useState<() => Promise<boolean>>();
+  const [nextBtnCallback, setNextBtnCallback] =
+    useState<() => Promise<boolean>>();
+  const [aButtonIsPressed, setAButtonIsPressed] = useState<boolean>(false);
   // const router = useRouter();
   useEffect(() => {
     /* button availability */
@@ -35,7 +50,25 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
           id="add-song-modal-container-content-header"
           className="w-full flex-[0_0_50px] flex flex-nowrap select-none"
         >
-          <button className="flex-[0_0_20%] text-white text-xs overflow-hidden">
+          <button
+            className={`flex-[0_0_20%] text-white text-xs overflow-hidden ${
+              editStateBtnAvailability[currentEditState]![0]
+                ? 'visible'
+                : 'invisible'
+            }`}
+            disabled={aButtonIsPressed}
+            onClick={() => {
+              if (!previousBtnCallback || aButtonIsPressed) return;
+              setAButtonIsPressed(true);
+              (async () => {
+                const returnValue = await previousBtnCallback();
+                if (returnValue) {
+                  setCurrentEditState(currentEditState - 1);
+                }
+                setAButtonIsPressed(false);
+              })();
+            }}
+          >
             <span className="inline-block">
               <span
                 style={{
@@ -47,10 +80,27 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
             </span>
           </button>
           <h2 className="flex-1 flex justify-center items-center text-lg font-bold text-white">
-            {currentEditState === ECurrentEditState.INPUT_SONG &&
-              'Add an audio file'}
+            {editStateTitle[currentEditState]}
           </h2>
-          <button className="flex-[0_0_20%] text-white text-xs overflow-hidden">
+          <button
+            className={`flex-[0_0_20%] text-white text-xs overflow-hidden ${
+              editStateBtnAvailability[currentEditState]![1] || false
+                ? 'visible'
+                : 'invisible'
+            }`}
+            disabled={aButtonIsPressed}
+            onClick={() => {
+              if (!nextBtnCallback || aButtonIsPressed) return;
+              setAButtonIsPressed(true);
+              (async () => {
+                const returnValue = await nextBtnCallback();
+                if (returnValue) {
+                  setCurrentEditState(currentEditState + 1);
+                }
+                setAButtonIsPressed(false);
+              })();
+            }}
+          >
             <span className="inline-block">
               Next
               <span
@@ -64,22 +114,26 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
           </button>
         </div>
         <div
-          className="overflow-visible flex-1 w-full flex flex-nowrap transition-transform"
+          /* the height calc fixes the overflow bc for some reasons it doesn't
+           * get the header size w/ h-full */
+          className="overflow-visible flex-1 w-full h-[calc(100%-50px)] flex flex-nowrap transition-transform"
           style={{
             transform: `translateX(${editStateOffset[currentEditState]}%)`,
           }}
         >
           <InjectNewSong
-            className="box-border flex-[0_0_100%] overflow-auto p-2"
+            className="box-border flex-[0_0_100%] overflow-auto"
             /* switch to the next pane */
             successCallback={() =>
               setCurrentEditState(ECurrentEditState.EDIT_STRINGS)
             }
             isActive={currentEditState === ECurrentEditState.INPUT_SONG}
           />
-          <div className="flex-[0_0_100%] bg-red-700 text-white">
-            auiaygyaygayhfehyeffueuiehueduiueieshues
-          </div>
+          <EditStrings
+            setNextCallback={setNextBtnCallback}
+            className="box-border flex-[0_0_100%] overflow-auto"
+            isActive={currentEditState === ECurrentEditState.EDIT_STRINGS}
+          />
           <div className="flex-[0_0_100%] bg-slate-400 relative"></div>
         </div>
       </div>

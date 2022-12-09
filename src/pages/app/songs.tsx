@@ -9,7 +9,7 @@ import type { NextPageLayoutInterface } from '@/utils/interfaces/NextPageLayoutI
 
 const AppSongs: NextPageLayoutInterface = () => {
   const router = useRouter();
-  const { appData, setAppData } = useContext(AppDataContext);
+  const { setAppData } = useContext(AppDataContext);
   const { soundsManager } = useContext(SoundsManagerContext);
   return (
     <>
@@ -39,8 +39,10 @@ const AppSongs: NextPageLayoutInterface = () => {
           className="mt-8 p-4 bg-slate-50 text-black"
           onClick={() => {
             setAppData!({
-              ...appData,
-              error: `HERE IS AN EAHGZTYDF7U8>JIRHVGFTYURROR ${Math.random()}`,
+              error: {
+                type: 'normal',
+                value: `HERE IS AN EAHGZTYDF7U8>JIRHVGFTYURROR ${Math.random()}`,
+              },
             });
           }}
         >
@@ -50,7 +52,6 @@ const AppSongs: NextPageLayoutInterface = () => {
           className="mt-8 p-4 bg-slate-50 text-black"
           onClick={() => {
             setAppData!({
-              ...appData,
               mediumModalText: `HERE IS AN EAHGZTYDF7U8>JIRHVGFTYURROR ${Math.random()}`,
             });
           }}
