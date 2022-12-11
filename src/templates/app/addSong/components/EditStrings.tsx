@@ -71,7 +71,7 @@ const EditStrings = (
           disabled={!isCurrentSoundReady || !props.isActive}
         />
       </div>
-      <div className="flex-[0_0_80px] flex flex-col mb-7">
+      <div className="flex-[0_0_80px] flex flex-col">
         <label htmlFor="editStringAuthor" className="text-sm">
           Author:
         </label>

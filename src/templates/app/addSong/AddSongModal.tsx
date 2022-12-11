@@ -132,7 +132,10 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
           <EditStrings
             setNextCallback={setNextBtnCallback}
             className="box-border flex-[0_0_100%] overflow-auto"
-            isActive={currentEditState === ECurrentEditState.EDIT_STRINGS}
+            isActive={
+              !aButtonIsPressed &&
+              currentEditState === ECurrentEditState.EDIT_STRINGS
+            }
           />
           <div className="flex-[0_0_100%] bg-slate-400 relative"></div>
         </div>
