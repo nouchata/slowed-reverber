@@ -48,7 +48,7 @@ export type ISoundsInfoStoreValue = {
   name: string;
   author: string;
   speedValue: number;
-  pitchValue: number;
+  dontChangePitch: boolean;
   reverbEffectValue: number;
   /* stands for the muffled effect */
   lowKeyEffectValue: number;

@@ -1,4 +1,4 @@
-import Reverb from '@logue/reverb';
+import type Reverb from '@logue/reverb';
 import type { IDBPDatabase } from 'idb';
 import { openDB } from 'idb';
 import SparkMD5 from 'spark-md5';
@@ -45,6 +45,8 @@ export default class SoundsManager {
   private audioStartTime = 0;
 
   private audioIsPlaying = false;
+
+  private ellipsedTime = 0;
 
   /* callbacks */
   private afterInitData: ISoundsManagerCallbacks;
@@ -162,12 +164,15 @@ export default class SoundsManager {
         this.audioContext,
         'phase-vocoder-processor'
       );
+
+      const Reverb = (await import('@logue/reverb')).default;
       this.reverbProcessor = new Reverb(this.audioContext);
+
       this.muffledProcessor = this.audioContext.createBiquadFilter();
       this.muffledProcessor.type = 'lowpass';
       this.muffledProcessor.frequency.setTargetAtTime(
         22050, // basically disable it
-        this.audioContext.currentTime,
+        0,
         0
       );
     } catch {
@@ -216,14 +221,12 @@ export default class SoundsManager {
     if (this.isFullyInit) this.freeData();
   }
 
-  public play(position?: number) {
+  public play() {
     if (this.audioContext?.state !== 'running') this.audioContext?.resume();
     this.setAudioSourceInput();
     this.linkingProcesses();
     /* seeking update for resuming */
-    this.audioPosition = position ?? this.audioPosition;
-    this.audioStartTime =
-      this.audioContext!.currentTime - (this.audioPosition || 0);
+    this.audioStartTime = this.audioContext!.currentTime;
     this.audioSourceInput!.start(
       this.audioContext!.currentTime,
       this.audioPosition
@@ -237,7 +240,11 @@ export default class SoundsManager {
     this.audioSourceInput!.stop(0);
     this.audioIsPlaying = false;
     this.afterInitData.setPlayStateCallback(this.audioIsPlaying);
-    this.audioPosition = this.audioContext!.currentTime - this.audioStartTime;
+    const notIncludedInEllipsed =
+      (this.audioContext!.currentTime - this.audioStartTime) *
+      (this.currentSound.soundInfoData?.speedValue || 1);
+    this.audioPosition = notIncludedInEllipsed + this.ellipsedTime;
+    this.ellipsedTime = this.audioPosition;
   }
 
   /* progressbar interaction */
@@ -246,8 +253,9 @@ export default class SoundsManager {
     else {
       /* the received percentage is divided by 100 bc it needs to be a factor */
       const newPosition = (percentage / 100) * this.audioBufferInput!.duration;
-      if (this.audioIsPlaying) this.play(newPosition);
-      else this.audioPosition = newPosition;
+      this.ellipsedTime = newPosition;
+      this.audioPosition = newPosition;
+      if (this.audioIsPlaying) this.play();
     }
   }
 
@@ -265,6 +273,11 @@ export default class SoundsManager {
       name: name || 'Unknown title',
       blobAudioHash: tempCurrentSound.soundSourceData.hash,
       creationDate: Date.now(),
+      /* default tweak values */
+      dontChangePitch: false,
+      speedValue: 1,
+      reverbEffectValue: 0,
+      lowKeyEffectValue: 50,
     };
 
     /* injects the arraybuffer in the database if it doesn't exists */
@@ -312,13 +325,16 @@ export default class SoundsManager {
       try {
         this.audioSourceInput!.stop(0);
       } catch {} //eslint-disable-line
+      /* various resets */
       this.audioIsPlaying = false;
       this.afterInitData.setPlayStateCallback(this.audioIsPlaying);
       this.audioPosition = 0;
       this.audioStartTime = 0;
+      this.ellipsedTime = 0;
     };
     this.audioSourceInput.buffer = this.audioBufferInput!;
-    this.audioSourceInput.playbackRate.value = 0.8;
+    this.audioSourceInput.playbackRate.value =
+      this.currentSound.soundInfoData?.speedValue || 1;
   }
 
   private linkingProcesses() {
@@ -344,6 +360,11 @@ export default class SoundsManager {
 
   public resetCurrentSound() {
     this.afterInitData.setCurrentSoundCallback({});
+    /* reset other values */
+    this.ellipsedTime = 0;
+    this.reverbProcessor?.mix(0);
+    this.muffledProcessor?.frequency.setTargetAtTime(22050, 0, 0);
+    if (this.audioContext?.state === 'running') this.audioContext?.suspend();
   }
 
   public async updateCurrentSound(values: Partial<ISoundsInfoStoreValue>) {
@@ -354,24 +375,101 @@ export default class SoundsManager {
       !this.currentSound.soundInfoKey
     )
       return;
+    /* reassignation */
+    const soundInfoDataUpdated = this.currentSound.soundInfoData || {};
+    Object.assign(soundInfoDataUpdated, values);
     /* update entry */
     await this.songsDb!.put(
       this.currentSound.soundInfoStore,
-      values,
+      soundInfoDataUpdated,
       this.currentSound.soundInfoKey
     );
     /* then update current state if it went well */
     this.afterInitData.setCurrentSoundCallback({
       ...this.currentSound,
-      soundInfoData: values,
+      soundInfoData: soundInfoDataUpdated,
     });
+    /* direct updates */
+    if (this.phaseVocoderProcessor && values.dontChangePitch !== undefined)
+      this.phaseVocoderProcessor.parameters.get('pitchFactor')!.value =
+        values.dontChangePitch && soundInfoDataUpdated.speedValue
+          ? 1 / soundInfoDataUpdated.speedValue
+          : 1;
+  }
+
+  public async tweakDataCurrentSound(
+    type: 'speed' | 'reverb' | 'distance',
+    value: number,
+    alreadyFormatted?: boolean
+  ) {
+    const updatedValues: any = {};
+    const oldSpeed = this.currentSound.soundInfoData?.speedValue || 1;
+    switch (type) {
+      case 'speed':
+        /* the percentage divided by 50 makes the speed of the playback
+         * ranged between 0 and 2, the pitch, if setted to be preserved,
+         * is a factor made using the speed value */
+        updatedValues.speedValue = value / 50;
+        /* bare speed-up value is good but the slowed down one needs to be
+         * capped btw 0.25 and 1 bc the sound is too distorted under 0.25 */
+        if (updatedValues.speedValue < 1 && !alreadyFormatted)
+          updatedValues.speedValue = updatedValues.speedValue * 0.75 + 0.25;
+        await this.updateCurrentSound({ speedValue: updatedValues.speedValue });
+        /* the audiocontext isn't conceived to be used for playback so there
+         * are no easy way to directly track the progress of the buffer source
+         * albeit the audiocontext time tracking (currentTime) can be used since
+         * it increases every seconds while the audiocontext is running though we
+         * need to consider the fact that the buffer source speed can be tweaked
+         * so ellipsedTime is used to track the real progress of the song based
+         * on the speed and is updated each time the speed is updated to allow
+         * a good tracking on the front-end regarding the progressbar */
+        if (this.audioIsPlaying) {
+          this.ellipsedTime +=
+            (this.audioContext!.currentTime - this.audioStartTime) * oldSpeed;
+          this.audioStartTime = this.audioContext!.currentTime;
+        }
+        /* real time updates using the processors */
+        if (this.audioSourceInput)
+          this.audioSourceInput.playbackRate.value = updatedValues.speedValue;
+        if (this.phaseVocoderProcessor)
+          this.phaseVocoderProcessor.parameters.get('pitchFactor')!.value = this
+            .currentSound.soundInfoData?.dontChangePitch
+            ? 1 / updatedValues.speedValue
+            : 1;
+        break;
+      case 'reverb':
+        updatedValues.reverb = value / 100;
+        await this.updateCurrentSound({
+          reverbEffectValue: updatedValues.reverb,
+        });
+        this.reverbProcessor?.mix(updatedValues.reverb);
+        break;
+      case 'distance':
+        /* there's no real effect on a "1-50" range so we're focusing the "50-100"
+         * range only */
+        updatedValues.muffled = 50 + Math.min(value, 99) / 2;
+        await this.updateCurrentSound({
+          lowKeyEffectValue: updatedValues.muffled,
+        });
+        this.muffledProcessor?.frequency.setTargetAtTime(
+          22050 - 22050 * (updatedValues.muffled / 100),
+          0,
+          0
+        );
+        break;
+      default:
+        break;
+    }
   }
 
   /* the returned percentage is not /100 but /1 */
   public getCurrentPercentage() {
+    const notIncludedInEllipsed =
+      (this.audioContext!.currentTime - this.audioStartTime) *
+      (this.currentSound.soundInfoData?.speedValue || 1);
     return (
       (this.audioIsPlaying
-        ? this.audioContext!.currentTime - this.audioStartTime
+        ? notIncludedInEllipsed + this.ellipsedTime
         : this.audioPosition) / this.audioBufferInput!.duration
     );
   }

@@ -34,8 +34,8 @@ const StaticContainer = (props: IBasicPropsInterface) => {
            * using pixelSize */
           for (let v = 0; v < windowSize.height; v += pixelSize) {
             for (let h = 0; h < windowSize.width; h += pixelSize) {
-              const lum = Math.floor(Math.random() * 50);
-              ctx.fillStyle = `hsl(0, 0%,${lum}%)`;
+              const lum = Math.floor(Math.random() * 4);
+              ctx.fillStyle = `hsl(222, 47.4%,${lum * 11.2}%)`;
               ctx.fillRect(h, v, pixelSize, pixelSize);
             }
           }

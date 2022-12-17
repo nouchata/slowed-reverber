@@ -3,8 +3,6 @@ import { useContext } from 'react';
 
 import AppLayout from '@/layouts/AppLayout';
 import { Meta } from '@/layouts/Meta';
-import ReverbSVG from '@/svgs/app/addSong/editValues/Reverb';
-import TweakValuesSlider from '@/templates/app/addSong/components/tweakValues/TweakValuesSlider';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { NextPageLayoutInterface } from '@/utils/interfaces/NextPageLayoutInterface';
@@ -60,21 +58,6 @@ const AppSongs: NextPageLayoutInterface = () => {
         >
           setmodalmsg
         </button>
-        <TweakValuesSlider
-          className="w-10/12 py-6 mx-2"
-          title="test"
-          color="#ffffff"
-          breakpoints={{
-            0: 'Normal',
-            20: 'A bit wet',
-            40: 'A bit more wet',
-            60: 'Wet',
-            80: 'Very wet',
-            100: 'Soaked',
-          }}
-          SvgElement={ReverbSVG}
-          percentageCallback={(percentage: number) => percentage}
-        />
       </div>
       <div
         id="song-tab-add-button-ping"

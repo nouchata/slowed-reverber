@@ -13,8 +13,7 @@ const EditStrings = (
     isActive: boolean;
   }
 ) => {
-  const { isCurrentSoundReady, currentSound, soundsManager } =
-    useContext(SoundsManagerContext);
+  const { currentSound, soundsManager } = useContext(SoundsManagerContext);
   const { setAppData } = useContext(AppDataContext);
   const inputTitleRef = useRef<HTMLInputElement>(null);
   const inputAuthorRef = useRef<HTMLInputElement>(null);
@@ -57,8 +56,11 @@ const EditStrings = (
       }}
     >
       <div className="flex-[0_0_80px] flex flex-col">
-        <label htmlFor="editStringTitle" className="text-sm">
-          Title: <span className="text-red-600">*</span>
+        <label htmlFor="editStringTitle" className="text-sm select-none">
+          Title:{' '}
+          <span className="text-red-600" title="mandatory">
+            *
+          </span>
         </label>
         <input
           ref={inputTitleRef}
@@ -68,11 +70,11 @@ const EditStrings = (
           id="editStringTitle"
           required={true}
           placeholder="Song title"
-          disabled={!isCurrentSoundReady || !props.isActive}
+          disabled={!props.isActive}
         />
       </div>
       <div className="flex-[0_0_80px] flex flex-col">
-        <label htmlFor="editStringAuthor" className="text-sm">
+        <label htmlFor="editStringAuthor" className="text-sm select-none">
           Author:
         </label>
         <input
@@ -82,7 +84,7 @@ const EditStrings = (
           name="author"
           id="editStringAuthor"
           placeholder="Optionnal author name"
-          disabled={!isCurrentSoundReady || !props.isActive}
+          disabled={!props.isActive}
         />
       </div>
     </form>

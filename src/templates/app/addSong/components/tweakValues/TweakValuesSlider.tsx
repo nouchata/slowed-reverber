@@ -8,10 +8,12 @@ import useWindowSize from '@/utils/useWindowSize';
 type ITweakValuesSliderProps = {
   title: string;
   color: string;
+  startPercentage?: number;
   svgColor?: string;
   innerHeight?: string;
   breakpoints: { [percentage: number]: string };
   arbitraryValue?: boolean;
+  isActive: boolean;
   SvgElement: (props: ITweakValuesSliderSVGProps) => any;
   percentageCallback: (percentage: number) => any;
 };
@@ -51,7 +53,7 @@ const TweakValuesSlider = (
    * "DOM-related" so let's save some renders by doing it in a ref */
   const stateRef = useRef<Partial<ITweakValuesSliderState>>({});
   const windowSize = useWindowSize();
-  const [percentage, setPercentage] = useState(0);
+  const [percentage, setPercentage] = useState(Number(props.startPercentage));
 
   /* better to export currentBreakpoint style logic in a reducer to
    * prevent callbacks recreation each time currentBreakpoint is
@@ -161,7 +163,7 @@ const TweakValuesSlider = (
     if (!stateRef.current) return;
     stateRef.current.containerBoundingClientRect =
       containerRef.current?.getBoundingClientRect();
-  }, [windowSize.width]);
+  }, [windowSize.width, props.isActive]);
 
   useEffect(() => {
     /* arbitrary value flag update inside a ref */
@@ -215,9 +217,13 @@ const TweakValuesSlider = (
     /* filling the breakpoint description and position it */
     breakpointDescRef.current.innerText =
       props.breakpoints[currentBreakpoint] || '';
-    breakpointDescRef.current.style.left = `calc(${currentBreakpoint}% - ${
-      breakpointDescRef.current.offsetWidth / 2
-    }px)`;
+    /* the offset is centered if it isn't too near from the edges,
+     * else it's positioned accordingly to the edges to prevent overflow */
+    let offset = 0;
+    if (currentBreakpoint > 85) offset = breakpointDescRef.current.offsetWidth;
+    else if (currentBreakpoint <= 85 && currentBreakpoint >= 25)
+      offset = breakpointDescRef.current.offsetWidth / 2;
+    breakpointDescRef.current.style.left = `calc(${currentBreakpoint}% - ${offset}px)`;
     /* showing it if it's not yet the case */
     if (!breakpointDescRef.current.style.visibility)
       breakpointDescRef.current.style.visibility = 'visible';
@@ -256,6 +262,7 @@ const TweakValuesSlider = (
         setCurrentBreakpoint(undefined);
       }}
       onMouseDown={() => {
+        if (!props.isActive) return;
         if (containerRef.current) containerRef.current.isDragBtnDown = true;
         /* disable transition while dragging */
         if (dragBtnRef.current)
@@ -263,6 +270,7 @@ const TweakValuesSlider = (
       }}
       /* touch logic is the same as mouse */
       onTouchStartCapture={() => {
+        if (!props.isActive) return;
         /* update the background line */
         if (bgLineRef.current) bgLineRef.current!.style.strokeWidth = '3';
         if (containerRef.current) containerRef.current.isDragBtnDown = true;
@@ -293,7 +301,7 @@ const TweakValuesSlider = (
         stroke="currentColor"
       >
         <title>
-          {props.title} - Current value: {percentage}%
+          {`${props.title} - Current value: ${Math.floor(percentage)}%`}
         </title>
         <line
           ref={bgLineRef}
@@ -325,7 +333,7 @@ const TweakValuesSlider = (
       </div>
       <div
         ref={breakpointDescRef}
-        className="absolute select-none top-[calc(50%-30px)] text-xs border-current border-[1px] px-1 rounded transition invisible"
+        className="absolute whitespace-nowrap select-none top-[calc(50%-30px)] text-xs border-current border-[1px] px-1 rounded transition invisible"
       ></div>
     </div>
   );

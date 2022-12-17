@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+
+import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 
 import Player from '../player/Player';
 import EditStrings from './components/EditStrings';
 import InjectNewSong from './components/InjectNewSong';
+import TweakValues from './components/TweakValues';
 
 enum ECurrentEditState {
   INPUT_SONG,
@@ -33,6 +36,7 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
   const [nextBtnCallback, setNextBtnCallback] =
     useState<() => Promise<boolean>>();
   const [aButtonIsPressed, setAButtonIsPressed] = useState<boolean>(false);
+  const { isCurrentSoundReady } = useContext(SoundsManagerContext);
   // const router = useRouter();
   useEffect(() => {
     /* button availability */
@@ -58,11 +62,15 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
             }`}
             disabled={aButtonIsPressed}
             onClick={() => {
-              if (!previousBtnCallback || aButtonIsPressed) return;
+              if (aButtonIsPressed) return;
               setAButtonIsPressed(true);
               (async () => {
-                const returnValue = await previousBtnCallback();
-                if (returnValue) {
+                if (previousBtnCallback) {
+                  const returnValue = await previousBtnCallback();
+                  if (returnValue) {
+                    setCurrentEditState(currentEditState - 1);
+                  }
+                } else {
                   setCurrentEditState(currentEditState - 1);
                 }
                 setAButtonIsPressed(false);
@@ -134,10 +142,23 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
             className="box-border flex-[0_0_100%] overflow-auto"
             isActive={
               !aButtonIsPressed &&
-              currentEditState === ECurrentEditState.EDIT_STRINGS
+              currentEditState === ECurrentEditState.EDIT_STRINGS &&
+              !!isCurrentSoundReady
             }
           />
-          <div className="flex-[0_0_100%] bg-slate-400 relative"></div>
+          <TweakValues
+            setNextCallback={setNextBtnCallback}
+            className="box-border flex-[0_0_100%] overflow-auto"
+            isActive={
+              !aButtonIsPressed &&
+              currentEditState === ECurrentEditState.EDIT_VALUES &&
+              !!isCurrentSoundReady
+            }
+            /* the pane stacking confuses getboundingrect so i'm refreshing it
+             * to get the good x offset value using key but it could have been
+             * an observer */
+            key={currentEditState}
+          />
         </div>
       </div>
       <Player
