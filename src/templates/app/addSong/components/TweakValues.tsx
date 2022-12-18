@@ -7,6 +7,7 @@ import SpeedSVG from '@/svgs/app/addSong/editValues/Speed';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
+import SoundsManager from '@/utils/SoundModule/SoundsManager';
 
 import TweakValuesSlider from './tweakValues/TweakValuesSlider';
 
@@ -25,12 +26,20 @@ const TweakValues = (
   useEffect(() => {
     const callback = () => {
       return async () => {
-        return true;
+        let wentWell = true;
+        await soundsManager!.undraftCurrentSong().catch((reason) => {
+          setAppData!({
+            error: { type: 'normal', value: reason.message },
+          });
+          wentWell = false;
+        });
+        return wentWell;
       };
     };
 
-    if (props.setNextCallback) props.setNextCallback(callback);
-  }, [currentSound]);
+    if (props.setNextCallback && props.isActive)
+      props.setNextCallback(callback);
+  }, [props.isActive]);
   return (
     <form
       className={`${props.className} pb-20 p-2 flex gap-2 flex-col justify-start text-white select-none`}
@@ -86,7 +95,11 @@ const TweakValues = (
             color="#ffffff"
             svgColor="#000000"
             title="Speed"
-            startPercentage={50}
+            startPercentage={SoundsManager.valueConverter(
+              'speed',
+              currentSound?.soundInfoData?.speedValue || 1,
+              false
+            )}
             arbitraryValue={arbitraryValue}
             breakpoints={{
               0: 'Cursed',
@@ -124,7 +137,11 @@ const TweakValues = (
             color="#ffffff"
             svgColor="#000000"
             title="Reverb"
-            startPercentage={0}
+            startPercentage={SoundsManager.valueConverter(
+              'reverb',
+              currentSound?.soundInfoData?.reverbEffectValue || 0,
+              false
+            )}
             arbitraryValue={arbitraryValue}
             breakpoints={{
               0: 'Normal',
@@ -161,7 +178,11 @@ const TweakValues = (
             color="#ffffff"
             svgColor="#000000"
             title="Distance"
-            startPercentage={0}
+            startPercentage={SoundsManager.valueConverter(
+              'distance',
+              currentSound?.soundInfoData?.lowKeyEffectValue || 50,
+              false
+            )}
             arbitraryValue={arbitraryValue}
             breakpoints={{
               0: 'Near you',

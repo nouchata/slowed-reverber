@@ -32,7 +32,6 @@ const EditStrings = (
         let wentWell = true;
         await soundsManager!
           .updateCurrentSound({
-            ...currentSound?.soundInfoData,
             name: inputTitleRef.current.value,
             author: inputAuthorRef.current?.value,
           })
@@ -45,8 +44,9 @@ const EditStrings = (
         return wentWell;
       };
     };
-    if (props.setNextCallback) props.setNextCallback(callback);
-  }, [currentSound, inputTitleRef, inputAuthorRef]);
+    if (props.setNextCallback && props.isActive)
+      props.setNextCallback(callback);
+  }, [props.isActive]);
   return (
     <form
       className={`${props.className} pb-20 p-2 flex flex-col justify-start text-white`}

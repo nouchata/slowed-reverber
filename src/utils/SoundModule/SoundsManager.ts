@@ -56,6 +56,10 @@ export default class SoundsManager {
 
   private dbVersion: number | undefined;
 
+  /* -------------------------------- */
+  /* ALLOCATION & DESTRUCTION METHODS */
+  /* -------------------------------- */
+
   constructor(args: ISoundsManagerConstructorArgs) {
     this.afterInitData = {
       successCallback: args.successCallback || (() => {}),
@@ -191,21 +195,6 @@ export default class SoundsManager {
     if (this.needsToBeDestructed) this.freeData();
   }
 
-  /* reset to cut the audio when leaving the player component */
-  public cutAudio(externalCall?: boolean) {
-    try {
-      this.audioSourceInput?.disconnect();
-      this.audioIsPlaying = false;
-      this.afterInitData.setPlayStateCallback(this.audioIsPlaying);
-      /* the muffled should be disconnected but it gives a eery mood to
-       * just hear the reverb alone when the source input disconnects
-       * i love it haha */
-      // this.muffledProcessor?.disconnect();
-      this.audioSourceInput = undefined;
-      if (externalCall) this.afterInitData.setSoundReadyCallback(false);
-    } catch (e: any) { console.log(e.message); } //eslint-disable-line
-  }
-
   /* destructor utils */
   private freeData() {
     this.isFullyInit = false;
@@ -220,6 +209,10 @@ export default class SoundsManager {
     this.needsToBeDestructed = true;
     if (this.isFullyInit) this.freeData();
   }
+
+  /* ------------ */
+  /* PLAYER UTILS */
+  /* ------------ */
 
   public play() {
     if (this.audioContext?.state !== 'running') this.audioContext?.resume();
@@ -259,6 +252,73 @@ export default class SoundsManager {
     }
   }
 
+  /* reset to cut the audio when leaving the player component */
+  public cutAudio(externalCall?: boolean) {
+    try {
+      this.audioSourceInput?.disconnect();
+      this.audioIsPlaying = false;
+      this.afterInitData.setPlayStateCallback(this.audioIsPlaying);
+      /* the muffled should be disconnected but it gives a eery mood to
+       * just hear the reverb alone when the source input disconnects
+       * i love it haha */
+      // this.muffledProcessor?.disconnect();
+      this.audioSourceInput = undefined;
+      if (externalCall) this.afterInitData.setSoundReadyCallback(false);
+      } catch (e: any) { console.log(e.message); } //eslint-disable-line
+  }
+
+  private linkingProcesses() {
+    /* the reverb process struggles if the source input is connected while
+     * linking the processes */
+    // this.audioSourceInput?.disconnect();
+    /* process connection link */
+    this.reverbProcessor!.connect(this.audioSourceInput!)
+      .connect(this.phaseVocoderProcessor!)
+      .connect(this.muffledProcessor!)
+      .connect(this.audioContext!.destination);
+
+    // this.audioSourceInput.start();
+  }
+
+  private setAudioSourceInput() {
+    this.cutAudio();
+    this.audioSourceInput = this.audioContext!.createBufferSource();
+    this.audioSourceInput.onended = () => {
+      /* onended triggers when putting pause so this makes sure it doesn't
+       * reset in this scenario */
+      if (!this.audioIsPlaying) return;
+      /* reset to the start when the audio ends */
+      try {
+        this.audioSourceInput!.stop(0);
+      } catch {} //eslint-disable-line
+      /* various resets */
+      this.audioIsPlaying = false;
+      this.afterInitData.setPlayStateCallback(this.audioIsPlaying);
+      this.audioPosition = 0;
+      this.audioStartTime = 0;
+      this.ellipsedTime = 0;
+    };
+    this.audioSourceInput.buffer = this.audioBufferInput!;
+    this.audioSourceInput.playbackRate.value =
+      this.currentSound.soundInfoData?.speedValue || 1;
+  }
+
+  /* the returned percentage is not /100 but /1 */
+  public getCurrentPercentage() {
+    const notIncludedInEllipsed =
+      (this.audioContext!.currentTime - this.audioStartTime) *
+      (this.currentSound.soundInfoData?.speedValue || 1);
+    return (
+      (this.audioIsPlaying
+        ? notIncludedInEllipsed + this.ellipsedTime
+        : this.audioPosition) / this.audioBufferInput!.duration
+    );
+  }
+
+  /* ------------- */
+  /* SONG CREATION */
+  /* ------------- */
+
   /* file creation utils */
   public async addFile(arrayBuffer: ArrayBuffer, name: string) {
     /* exits if the constructor threw an error */
@@ -271,7 +331,9 @@ export default class SoundsManager {
     };
     tempCurrentSound.soundInfoData = {
       name: name || 'Unknown title',
+      author: '',
       blobAudioHash: tempCurrentSound.soundSourceData.hash,
+      blobVisualHash: '',
       creationDate: Date.now(),
       /* default tweak values */
       dontChangePitch: false,
@@ -314,49 +376,29 @@ export default class SoundsManager {
     this.afterInitData.setSoundReadyCallback(true);
   }
 
-  private setAudioSourceInput() {
-    this.cutAudio();
-    this.audioSourceInput = this.audioContext!.createBufferSource();
-    this.audioSourceInput.onended = () => {
-      /* onended triggers when putting pause so this makes sure it doesn't
-       * reset in this scenario */
-      if (!this.audioIsPlaying) return;
-      /* reset to the start when the audio ends */
-      try {
-        this.audioSourceInput!.stop(0);
-      } catch {} //eslint-disable-line
-      /* various resets */
-      this.audioIsPlaying = false;
-      this.afterInitData.setPlayStateCallback(this.audioIsPlaying);
-      this.audioPosition = 0;
-      this.audioStartTime = 0;
-      this.ellipsedTime = 0;
-    };
-    this.audioSourceInput.buffer = this.audioBufferInput!;
-    this.audioSourceInput.playbackRate.value =
-      this.currentSound.soundInfoData?.speedValue || 1;
+  public async undraftCurrentSong() {
+    console.log('undraft');
+    /* exits if it's not a draft song */
+    if (this.currentSound.soundInfoStore !== 'sounds-temp-info') return;
+    const oldKey = this.currentSound.soundInfoKey || '';
+    /* setup a new date for the new entry */
+    const newEntry: Partial<ISoundsInfoStoreValue> = {};
+    Object.assign(newEntry, this.currentSound.soundInfoData || {});
+    newEntry.creationDate = Date.now();
+    /* assigns and update the key */
+    this.currentSound.soundInfoKey = await this.songsDb?.add(
+      'sounds-info',
+      newEntry as ISoundsInfoStoreValue
+    );
+    /* change local store reference */
+    this.currentSound.soundInfoStore = 'sounds-info';
+    /* delete the draft song */
+    await this.songsDb?.delete('sounds-temp-info', oldKey);
   }
 
-  private linkingProcesses() {
-    /* the reverb process struggles if the source input is connected while
-     * linking the processes */
-    // this.audioSourceInput?.disconnect();
-    /* process connection link */
-    this.reverbProcessor!.connect(this.audioSourceInput!)
-      .connect(this.phaseVocoderProcessor!)
-      .connect(this.muffledProcessor!)
-      .connect(this.audioContext!.destination);
-
-    // this.audioSourceInput.start();
-  }
-
-  public contextUpdateCurrentSound(currentSound: ISoundsManagerCurrentSound) {
-    this.currentSound = currentSound;
-  }
-
-  public contextUpdateCurrentAppData(currentAppData: Partial<IAppData>) {
-    this.currentAppData = currentAppData;
-  }
+  /* ------------------------------ */
+  /* CURRENT SOUND & DATABASE UTILS */
+  /* ------------------------------ */
 
   public resetCurrentSound() {
     this.afterInitData.setCurrentSoundCallback({});
@@ -400,21 +442,17 @@ export default class SoundsManager {
   public async tweakDataCurrentSound(
     type: 'speed' | 'reverb' | 'distance',
     value: number,
-    alreadyFormatted?: boolean
+    options?: { noDatabaseUpdate?: boolean; noPlaybackValueUpdate?: boolean }
   ) {
-    const updatedValues: any = {};
+    const factor = SoundsManager.valueConverter(type, value, true);
     const oldSpeed = this.currentSound.soundInfoData?.speedValue || 1;
     switch (type) {
       case 'speed':
-        /* the percentage divided by 50 makes the speed of the playback
-         * ranged between 0 and 2, the pitch, if setted to be preserved,
-         * is a factor made using the speed value */
-        updatedValues.speedValue = value / 50;
-        /* bare speed-up value is good but the slowed down one needs to be
-         * capped btw 0.25 and 1 bc the sound is too distorted under 0.25 */
-        if (updatedValues.speedValue < 1 && !alreadyFormatted)
-          updatedValues.speedValue = updatedValues.speedValue * 0.75 + 0.25;
-        await this.updateCurrentSound({ speedValue: updatedValues.speedValue });
+        if (!options || !options.noDatabaseUpdate)
+          await this.updateCurrentSound({
+            speedValue: factor,
+          });
+        if (options && options.noPlaybackValueUpdate) return;
         /* the audiocontext isn't conceived to be used for playback so there
          * are no easy way to directly track the progress of the buffer source
          * albeit the audiocontext time tracking (currentTime) can be used since
@@ -430,47 +468,83 @@ export default class SoundsManager {
         }
         /* real time updates using the processors */
         if (this.audioSourceInput)
-          this.audioSourceInput.playbackRate.value = updatedValues.speedValue;
+          this.audioSourceInput.playbackRate.value = factor;
         if (this.phaseVocoderProcessor)
           this.phaseVocoderProcessor.parameters.get('pitchFactor')!.value = this
             .currentSound.soundInfoData?.dontChangePitch
-            ? 1 / updatedValues.speedValue
+            ? 1 / factor
             : 1;
         break;
       case 'reverb':
-        updatedValues.reverb = value / 100;
-        await this.updateCurrentSound({
-          reverbEffectValue: updatedValues.reverb,
-        });
-        this.reverbProcessor?.mix(updatedValues.reverb);
+        if (!options || !options.noDatabaseUpdate)
+          await this.updateCurrentSound({
+            reverbEffectValue: factor,
+          });
+        if (!options || !options.noPlaybackValueUpdate)
+          this.reverbProcessor?.mix(factor);
         break;
       case 'distance':
-        /* there's no real effect on a "1-50" range so we're focusing the "50-100"
-         * range only */
-        updatedValues.muffled = 50 + Math.min(value, 99) / 2;
-        await this.updateCurrentSound({
-          lowKeyEffectValue: updatedValues.muffled,
-        });
-        this.muffledProcessor?.frequency.setTargetAtTime(
-          22050 - 22050 * (updatedValues.muffled / 100),
-          0,
-          0
-        );
+        if (!options || !options.noDatabaseUpdate)
+          await this.updateCurrentSound({
+            lowKeyEffectValue: factor,
+          });
+        if (!options || !options.noPlaybackValueUpdate)
+          this.muffledProcessor?.frequency.setTargetAtTime(
+            22050 - 22050 * (factor / 100),
+            0,
+            0
+          );
         break;
       default:
         break;
     }
   }
 
-  /* the returned percentage is not /100 but /1 */
-  public getCurrentPercentage() {
-    const notIncludedInEllipsed =
-      (this.audioContext!.currentTime - this.audioStartTime) *
-      (this.currentSound.soundInfoData?.speedValue || 1);
-    return (
-      (this.audioIsPlaying
-        ? notIncludedInEllipsed + this.ellipsedTime
-        : this.audioPosition) / this.audioBufferInput!.duration
-    );
+  public contextUpdateCurrentSound(currentSound: ISoundsManagerCurrentSound) {
+    this.currentSound = currentSound;
+  }
+
+  public contextUpdateCurrentAppData(currentAppData: Partial<IAppData>) {
+    this.currentAppData = currentAppData;
+  }
+
+  /* -------------- */
+  /* STATIC METHODS */
+  /* -------------- */
+
+  public static valueConverter(
+    type: 'speed' | 'reverb' | 'distance',
+    value: number,
+    /* true = percentage -> factor ; false = factor -> percentage */
+    toFactor: boolean
+  ) {
+    let computed = 0;
+    switch (type) {
+      case 'speed':
+        /* the percentage divided by 50 makes the speed of the playback
+         * ranged between 0 and 2, the pitch, if setted to be preserved,
+         * is a factor made using the speed value */
+        computed = toFactor ? value / 50 : value;
+        /* bare speed-up value is good but the slowed down one needs to be
+         * capped btw 0.25 and 1 bc the sound is too distorted under 0.25 */
+        if (computed < 1)
+          computed = toFactor
+            ? computed * 0.75 + 0.25
+            : (computed - 0.25) / 0.75;
+        if (!toFactor) computed *= 50;
+        break;
+      case 'reverb':
+        /* just a factor translation */
+        computed = toFactor ? value / 100 : value * 100;
+        break;
+      case 'distance':
+        /* there's no real effect on a "1-50" range so we're focusing the "50-100"
+         * range only */
+        computed = toFactor ? 50 + Math.min(value, 99) / 2 : (value - 50) * 2;
+        break;
+      default:
+        break;
+    }
+    return computed;
   }
 }

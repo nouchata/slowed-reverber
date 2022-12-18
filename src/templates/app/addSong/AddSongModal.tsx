@@ -1,3 +1,4 @@
+import { useRouter } from 'next/router';
 import { useContext, useEffect, useState } from 'react';
 
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
@@ -11,10 +12,9 @@ enum ECurrentEditState {
   INPUT_SONG,
   EDIT_STRINGS,
   EDIT_VALUES,
-  INPUT_VISUAL,
 }
 
-const editStateOffset = [0, -100, -200, -300];
+const editStateOffset = [0, -100, -200];
 
 const editStateTitle = ['Add an audio file', 'Edit metadata', 'Tweak values'];
 
@@ -22,7 +22,7 @@ const editStateTitle = ['Add an audio file', 'Edit metadata', 'Tweak values'];
 const editStateBtnAvailability = [
   [false, false],
   [false, true],
-  [true, false],
+  [true, true],
 ];
 
 const AddSongModal = (props: { freshSongEdit: boolean }) => {
@@ -37,7 +37,8 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
     useState<() => Promise<boolean>>();
   const [aButtonIsPressed, setAButtonIsPressed] = useState<boolean>(false);
   const { isCurrentSoundReady } = useContext(SoundsManagerContext);
-  // const router = useRouter();
+  const router = useRouter();
+
   useEffect(() => {
     /* button availability */
   }, [currentEditState]);
@@ -103,22 +104,28 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
               (async () => {
                 const returnValue = await nextBtnCallback();
                 if (returnValue) {
-                  setCurrentEditState(currentEditState + 1);
+                  if (currentEditState !== ECurrentEditState.EDIT_VALUES)
+                    setCurrentEditState(currentEditState + 1);
+                  else router.back();
                 }
                 setAButtonIsPressed(false);
               })();
             }}
           >
             <span className="inline-block">
-              Next
+              {currentEditState !== ECurrentEditState.EDIT_VALUES
+                ? 'Next'
+                : 'Save'}
               <span
                 style={{
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3Cpolyline points='12 5 19 12 12 19'%3E%3C/polyline%3E%3C/svg%3E")`,
+                  backgroundImage:
+                    currentEditState !== ECurrentEditState.EDIT_VALUES
+                      ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='5' y1='12' x2='19' y2='12'%3E%3C/line%3E%3Cpolyline points='12 5 19 12 12 19'%3E%3C/polyline%3E%3C/svg%3E")`
+                      : `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E")`,
                 }}
                 className="inline px-2 bg-no-repeat bg-right bg-contain"
               />
             </span>
-            <span></span>
           </button>
         </div>
         <div

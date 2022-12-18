@@ -40,11 +40,7 @@ const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
           enterAndLeaveEventCount.current += 1;
           /* opens the modal when a file is dragged on the screen */
           if (router.asPath === '/app/songs/')
-            router.push(
-              { pathname: '/app/songs', query: { md: 'addSong' } },
-              undefined,
-              { shallow: true }
-            );
+            router.push({ pathname: '/app/songs', query: { md: 'addSong' } });
           /* state changing for style */
           setAppData!({ fileDragAndDrop: true });
         }}
