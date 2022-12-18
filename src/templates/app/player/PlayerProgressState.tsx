@@ -87,7 +87,11 @@ const PlayerProgressState = (props: IStylePropsInterface) => {
     let runtime = true;
     const updateProgressBar = async () => {
       if (runtime && isCurrentSoundReady) {
-        if (playerProgressRef.current && !playerProgressRef.current.isDragging)
+        if (
+          playerProgressRef.current &&
+          !playerProgressRef.current.isDragging &&
+          playerProgressRef.current.setNewPercentage
+        )
           playerProgressRef.current.setNewPercentage(
             soundsManager!.getCurrentPercentage() * 100,
             true,

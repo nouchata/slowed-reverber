@@ -1,12 +1,12 @@
-import { useRouter } from 'next/router';
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 
 import AppLayout from '@/layouts/AppLayout';
 import { Meta } from '@/layouts/Meta';
+import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import type { NextPageLayoutInterface } from '@/utils/interfaces/NextPageLayoutInterface';
 
 const AppIndex: NextPageLayoutInterface = () => {
-  const router = useRouter();
+  const { router } = useContext(AppDataContext).appData!;
   useEffect(() => {
     router.push('/app/songs');
   }, []);

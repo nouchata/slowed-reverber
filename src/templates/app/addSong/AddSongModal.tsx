@@ -1,6 +1,6 @@
-import { useRouter } from 'next/router';
 import { useContext, useEffect, useState } from 'react';
 
+import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 
 import Player from '../player/Player';
@@ -25,7 +25,7 @@ const editStateBtnAvailability = [
   [true, true],
 ];
 
-const AddSongModal = (props: { freshSongEdit: boolean }) => {
+const AddSongModal = (props: { freshSongEdit?: boolean }) => {
   const [currentEditState, setCurrentEditState] = useState<ECurrentEditState>(
     props.freshSongEdit
       ? ECurrentEditState.INPUT_SONG
@@ -37,7 +37,7 @@ const AddSongModal = (props: { freshSongEdit: boolean }) => {
     useState<() => Promise<boolean>>();
   const [aButtonIsPressed, setAButtonIsPressed] = useState<boolean>(false);
   const { isCurrentSoundReady } = useContext(SoundsManagerContext);
-  const router = useRouter();
+  const { router } = useContext(AppDataContext).appData!;
 
   useEffect(() => {
     /* button availability */

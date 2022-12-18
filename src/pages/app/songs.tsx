@@ -1,4 +1,3 @@
-import { useRouter } from 'next/router';
 import { useContext } from 'react';
 
 import AppLayout from '@/layouts/AppLayout';
@@ -8,7 +7,7 @@ import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { NextPageLayoutInterface } from '@/utils/interfaces/NextPageLayoutInterface';
 
 const AppSongs: NextPageLayoutInterface = () => {
-  const router = useRouter();
+  const { router } = useContext(AppDataContext).appData!;
   const { setAppData } = useContext(AppDataContext);
   const { soundsManager } = useContext(SoundsManagerContext);
   return (

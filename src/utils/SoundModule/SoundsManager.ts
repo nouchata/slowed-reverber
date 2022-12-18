@@ -253,7 +253,7 @@ export default class SoundsManager {
   }
 
   /* reset to cut the audio when leaving the player component */
-  public cutAudio(externalCall?: boolean) {
+  public cutAudio() {
     try {
       this.audioSourceInput?.disconnect();
       this.audioIsPlaying = false;
@@ -263,7 +263,6 @@ export default class SoundsManager {
        * i love it haha */
       // this.muffledProcessor?.disconnect();
       this.audioSourceInput = undefined;
-      if (externalCall) this.afterInitData.setSoundReadyCallback(false);
       } catch (e: any) { console.log(e.message); } //eslint-disable-line
   }
 
@@ -322,7 +321,8 @@ export default class SoundsManager {
   /* file creation utils */
   public async addFile(arrayBuffer: ArrayBuffer, name: string) {
     /* exits if the constructor threw an error */
-    if (!this.isFullyInit) return;
+    if (!this.isFullyInit)
+      throw new Error('The audio context is not (yet) initialized...');
     const tempCurrentSound: ISoundsManagerCurrentSound = {};
     tempCurrentSound.soundInfoStore = 'sounds-temp-info';
     tempCurrentSound.soundSourceData = {
@@ -366,9 +366,6 @@ export default class SoundsManager {
       arrayBuffer
     );
     tempCurrentSound.soundBufferDuration = this.audioBufferInput.duration;
-    /* reset player data in case a sound was played before */
-    this.audioPosition = 0;
-    this.audioStartTime = 0;
 
     /* updates currentSound w/ the fresh data */
     this.afterInitData.setCurrentSoundCallback(tempCurrentSound);
@@ -377,10 +374,9 @@ export default class SoundsManager {
   }
 
   public async undraftCurrentSong() {
-    console.log('undraft');
     /* exits if it's not a draft song */
     if (this.currentSound.soundInfoStore !== 'sounds-temp-info') return;
-    const oldKey = this.currentSound.soundInfoKey || '';
+    const oldKey = this.currentSound.soundInfoKey;
     /* setup a new date for the new entry */
     const newEntry: Partial<ISoundsInfoStoreValue> = {};
     Object.assign(newEntry, this.currentSound.soundInfoData || {});
@@ -393,7 +389,7 @@ export default class SoundsManager {
     /* change local store reference */
     this.currentSound.soundInfoStore = 'sounds-info';
     /* delete the draft song */
-    await this.songsDb?.delete('sounds-temp-info', oldKey);
+    if (oldKey) await this.songsDb?.delete('sounds-temp-info', oldKey);
   }
 
   /* ------------------------------ */
@@ -401,8 +397,13 @@ export default class SoundsManager {
   /* ------------------------------ */
 
   public resetCurrentSound() {
+    if (!this.isFullyInit) return;
     this.afterInitData.setCurrentSoundCallback({});
+    this.afterInitData.setSoundReadyCallback(false);
+    this.audioBufferInput = undefined;
     /* reset other values */
+    this.audioPosition = 0;
+    this.audioStartTime = 0;
     this.ellipsedTime = 0;
     this.reverbProcessor?.mix(0);
     this.muffledProcessor?.frequency.setTargetAtTime(22050, 0, 0);
@@ -410,12 +411,10 @@ export default class SoundsManager {
   }
 
   public async updateCurrentSound(values: Partial<ISoundsInfoStoreValue>) {
+    if (!this.isFullyInit)
+      throw new Error('The audio context is not (yet) initialized...');
     /* basic check to prevent bad database assignation */
-    if (
-      !this.isFullyInit ||
-      !this.currentSound.soundInfoStore ||
-      !this.currentSound.soundInfoKey
-    )
+    if (!this.currentSound.soundInfoStore || !this.currentSound.soundInfoKey)
       return;
     /* reassignation */
     const soundInfoDataUpdated = this.currentSound.soundInfoData || {};
@@ -498,6 +497,69 @@ export default class SoundsManager {
       default:
         break;
     }
+  }
+
+  public async injectInCurrentSong(
+    storeName: 'sounds-info' | 'sounds-temp-info',
+    key: number,
+    setupBuffer?: boolean,
+    notToInject?: {
+      soundInfoKey?: boolean;
+      soundInfoStore?: boolean;
+      soundInfoData?: boolean;
+      soundSourceData?: boolean;
+      visualSourceData?: boolean;
+    }
+  ) {
+    if (!this.isFullyInit)
+      throw new Error('The audio context is not (yet) initialized...');
+    /* get data to (over)write */
+    const data: ISoundsManagerCurrentSound = {};
+    Object.assign(data, this.currentSound);
+
+    /* various assignations / database fetchs */
+    if (!notToInject || !notToInject.soundInfoKey) data.soundInfoKey = key;
+
+    if (!notToInject || !notToInject.soundInfoStore)
+      data.soundInfoStore = storeName;
+
+    if (!notToInject || !notToInject.soundInfoData) {
+      data.soundInfoData = await this.songsDb?.get(storeName, key);
+      if (!data.soundInfoData)
+        throw new Error('The given song id seems to be incorrect');
+    }
+
+    if (!notToInject || !notToInject.soundSourceData) {
+      data.soundSourceData = await this.songsDb?.get(
+        'sounds-source-blob',
+        data.soundInfoData?.blobAudioHash || ''
+      );
+      if (!data.soundSourceData)
+        throw new Error('Error while fetching song blob');
+    }
+
+    if (!notToInject || !notToInject.visualSourceData) {
+      data.visualSourceData = await this.songsDb?.get(
+        'sounds-visual-blob',
+        data.soundInfoData?.blobVisualHash || ''
+      );
+      if (!data.visualSourceData)
+        throw new Error('Error while fetching visual blob');
+    }
+
+    /* audiobuffer setup */
+    if (setupBuffer) {
+      /* from array buffer to audio buffer */
+      this.audioBufferInput = await this.audioContext!.decodeAudioData(
+        data.soundSourceData?.data as ArrayBuffer
+      );
+      data.soundBufferDuration = this.audioBufferInput.duration;
+      /* the sound is ready */
+      this.afterInitData.setSoundReadyCallback(true);
+    }
+
+    /* update */
+    this.afterInitData.setCurrentSoundCallback(data);
   }
 
   public contextUpdateCurrentSound(currentSound: ISoundsManagerCurrentSound) {

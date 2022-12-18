@@ -1,5 +1,9 @@
+import type { BaseRouter } from 'next/dist/shared/lib/router/router';
+import type { NextRouter } from 'next/router';
 import type { Dispatch, Reducer } from 'react';
-import { createContext, useReducer } from 'react';
+import { createContext, useEffect, useReducer } from 'react';
+
+import useRouterWithHistory from '../useRouterWithHistory';
 
 export type IAppData = {
   /* error to be passed to the small or big modal based on type */
@@ -8,6 +12,9 @@ export type IAppData = {
   mediumModalText: string;
   /* drag and drop flag for the song / image input */
   fileDragAndDrop: boolean;
+  /* router with history references */
+  router: NextRouter;
+  oldRoutes: BaseRouter[];
 };
 
 export type IAppDataContextValues = {
@@ -22,6 +29,7 @@ const AppDataProvider = (props: { children: any }) => {
    * regarding error handling since their closing behavior may be debounced
    * and so it could update an old version of appData since edits can happened
    * meanwhile */
+  const [router, oldRoutes] = useRouterWithHistory();
   const [appData, setAppData] = useReducer<
     Reducer<IAppData, Partial<IAppData>>
   >(
@@ -29,13 +37,20 @@ const AppDataProvider = (props: { children: any }) => {
       error: updates.error || state.error,
       fileDragAndDrop: updates.fileDragAndDrop ?? state.fileDragAndDrop,
       mediumModalText: updates.mediumModalText ?? state.mediumModalText,
+      router: updates.router ?? state.router,
+      oldRoutes: updates.oldRoutes ?? state.oldRoutes,
     }),
     {
       error: { type: 'none', value: '' },
       fileDragAndDrop: false,
       mediumModalText: '',
+      router,
+      oldRoutes,
     }
   );
+  useEffect(() => {
+    setAppData({ router });
+  }, [router]);
   return (
     <AppDataContext.Provider value={{ appData, setAppData }}>
       {props.children}

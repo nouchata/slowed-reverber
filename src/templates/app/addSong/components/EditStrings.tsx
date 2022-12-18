@@ -21,11 +21,13 @@ const EditStrings = (
   useEffect(() => {
     if (inputTitleRef.current)
       inputTitleRef.current.value = currentSound?.soundInfoData?.name || '';
+    if (inputAuthorRef.current)
+      inputAuthorRef.current.value = currentSound?.soundInfoData?.author || '';
     const callback = () => {
       return async () => {
         if (!inputTitleRef.current?.value.length) {
           setAppData!({
-            error: { type: 'normal', value: 'You must at least input a title' },
+            error: { type: 'normal', value: 'You must input a title' },
           });
           return false;
         }

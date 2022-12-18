@@ -1,19 +1,19 @@
 import gsap from 'gsap';
 import { Observer } from 'gsap/dist/Observer';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { useContext, useRef } from 'react';
 
 import { Meta } from '@/layouts/Meta';
 import IndexArrowSVG from '@/svgs/IndexArrow';
 import IndexLogoSVG from '@/svgs/IndexLogo';
 import ParticlesContainer from '@/templates/ParticlesContainer';
+import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { TransitionContext } from '@/utils/contexts/TransitionContext';
 import type { IParticlesContainerMousePosCoords } from '@/utils/interfaces/ParticleManagerInterfaces';
 import useIsomorphicLayoutEffect from '@/utils/useIsomorphicLayoutEffect';
 
 const Index = () => {
-  const router = useRouter();
+  const { router } = useContext(AppDataContext).appData!;
   const mouseDataRef = useRef<IParticlesContainerMousePosCoords>({
     /* since the particle container is an underlayer, the mouse logic event will be done here in the parent div */
     x: undefined,

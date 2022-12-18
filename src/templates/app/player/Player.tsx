@@ -24,7 +24,7 @@ const Player = (props: IStylePropsInterface) => {
   /* cut the audio if the player leaves the DOM */
   useEffect(() => {
     const sm = soundsManager!;
-    return () => sm.cutAudio(true);
+    return () => sm.cutAudio();
   }, []);
   /* updates the duration display */
   useEffect(() => {
@@ -66,6 +66,7 @@ const Player = (props: IStylePropsInterface) => {
       </div>
       <span
         id="player-sound-total-time"
+        title="Duration of the edited song"
         className="flex-[0_0_80px] flex justify-center items-center"
       >
         {minutesSeconds[0]}:{minutesSeconds[1]}

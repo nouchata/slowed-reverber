@@ -23,7 +23,7 @@ export type ISoundsManagerConstructorArgs = Partial<
 >;
 
 export type ISoundsManagerCurrentSound = Partial<{
-  soundInfoKey: string;
+  soundInfoKey: number;
   soundInfoStore: 'sounds-info' | 'sounds-temp-info';
   soundBufferDuration: number;
   soundInfoData: Partial<ISoundsInfoStoreValue>;
@@ -57,7 +57,7 @@ export type ISoundsInfoStoreValue = {
 /* sounds-info store design */
 export type ISoundsInfoStoreAssets = {
   /* key is generated and used by indexedDB as an ID */
-  key: string;
+  key: number;
   indexes: {
     'by-date': Date;
     'by-audio-blob-key': string;

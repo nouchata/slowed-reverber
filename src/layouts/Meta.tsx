@@ -1,8 +1,9 @@
 import Head from 'next/head';
-import { useRouter } from 'next/router';
 import { NextSeo } from 'next-seo';
+import { useContext } from 'react';
 
 import { AppConfig } from '@/utils/AppConfig';
+import { AppDataContext } from '@/utils/contexts/AppDataContext';
 
 type IMetaProps = {
   title: string;
@@ -12,7 +13,7 @@ type IMetaProps = {
 };
 
 const Meta = (props: IMetaProps) => {
-  const router = useRouter();
+  const { router } = useContext(AppDataContext).appData!;
 
   return (
     <>

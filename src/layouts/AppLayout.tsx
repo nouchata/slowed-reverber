@@ -1,4 +1,3 @@
-import { useRouter } from 'next/router';
 import { useContext, useRef } from 'react';
 
 import MenuSongsSVG from '@/svgs/app/menu/MenuSongs';
@@ -23,7 +22,7 @@ const dragEventPreventDefaultTriggering = (e: any) => {
 
 /* the global of the app (header + menu + modals) */
 const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
-  const router = useRouter();
+  const { router } = useContext(AppDataContext).appData!;
   const { setAppData } = useContext(AppDataContext);
   /* used to put the staticcontainer in the dom */
   const windowWidth = useWindowSize().width;
