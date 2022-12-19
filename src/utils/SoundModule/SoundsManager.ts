@@ -554,6 +554,14 @@ export default class SoundsManager {
         data.soundSourceData?.data as ArrayBuffer
       );
       data.soundBufferDuration = this.audioBufferInput.duration;
+      /* distance & reverb setup (speed is handled by setAudioSourceInput)
+       * when playing the song */
+      this.muffledProcessor?.frequency.setTargetAtTime(
+        22050 - 22050 * (data.soundInfoData!.lowKeyEffectValue! / 100),
+        0,
+        0
+      );
+      this.reverbProcessor?.mix(data.soundInfoData?.reverbEffectValue!);
       /* the sound is ready */
       this.afterInitData.setSoundReadyCallback(true);
     }

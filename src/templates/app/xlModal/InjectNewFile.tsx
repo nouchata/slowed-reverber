@@ -1,8 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 
-import InjectNewFile from '@/svgs/app/addSong/InjectNewFile';
+import NewFileSVG from '@/svgs/app/addSong/NewFile';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
-import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 
 enum EInputFileState {
@@ -17,11 +16,15 @@ const buttonText = [
   'Processing done',
 ];
 
-const InjectNewSong = (
-  props: IStylePropsInterface & { successCallback: Function; isActive: boolean }
+const InjectNewFile = (
+  props: IStylePropsInterface & {
+    successCallback: Function;
+    processCallback: (file: File) => Promise<any>;
+    isActive: boolean;
+    fileTypes: Array<string>;
+  }
 ) => {
   const { appData, setAppData } = useContext(AppDataContext);
-  const { soundsManager } = useContext(SoundsManagerContext);
 
   const [processingFileState, setProcessingFileState] = useState(
     props.isActive ? EInputFileState.WAITING_FOR_FILE : EInputFileState.DONE
@@ -55,21 +58,20 @@ const InjectNewSong = (
       setGivenFile(undefined);
       return;
     }
-    if (!givenFile.type.includes('audio')) {
+    if (!props.fileTypes.find((value) => givenFile.type.includes(value))) {
       setAppData!({
-        error: { type: 'normal', value: 'You need to provide an audio file' },
+        error: {
+          type: 'normal',
+          value: `You need to provide an ${props.fileTypes.join('/')} file`,
+        },
       });
       setProcessingFileState(EInputFileState.WAITING_FOR_FILE);
       setGivenFile(undefined);
       return;
     }
     (async () => {
-      await soundsManager!
-        .addFile(
-          await givenFile.arrayBuffer(),
-          /* removes the extension */
-          givenFile.name.replace(/\.[^.]*$/, '')
-        )
+      await props
+        .processCallback(givenFile)
         .then(() => {
           setProcessingFileState(EInputFileState.DONE);
           props.successCallback();
@@ -141,7 +143,7 @@ const InjectNewSong = (
             }
           }}
         >
-          <InjectNewFile
+          <NewFileSVG
             animatePlusSign={processingFileState === EInputFileState.PROCESSING}
             valideFile={processingFileState === EInputFileState.DONE}
             className="flex-[0_0_40%] w-full stroke-1"
@@ -157,4 +159,4 @@ const InjectNewSong = (
   );
 };
 
-export default InjectNewSong;
+export default InjectNewFile;

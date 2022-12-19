@@ -1,11 +1,11 @@
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 
-type InjectNewFileProps = {
+type NewFileSVGProps = {
   animatePlusSign: boolean;
   valideFile: boolean;
 } & IStylePropsInterface;
 
-const InjectNewFile = (props: Partial<InjectNewFileProps>) => {
+const NewFileSVG = (props: Partial<NewFileSVGProps>) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -38,4 +38,4 @@ const InjectNewFile = (props: Partial<InjectNewFileProps>) => {
   );
 };
 
-export default InjectNewFile;
+export default NewFileSVG;

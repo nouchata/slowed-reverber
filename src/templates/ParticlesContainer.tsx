@@ -109,9 +109,13 @@ const ParticlesContainer = (
               /* some optimisations to limit fill calls */
               ctx.beginPath();
               ctx.fillStyle = containerDataRef.current.color || '#FFFFFF';
-              // eslint-disable-next-line no-restricted-syntax
-              for (const particle of containerDataRef.current.particlesArray)
-                particle.update();
+              /* update */
+              for (
+                let i = 0, { length } = containerDataRef.current.particlesArray;
+                i < length;
+                i += 1
+              )
+                containerDataRef.current.particlesArray[i]!.update();
               ctx.fill();
               ctx.closePath();
               /* requestAnimationFrame cpu usage is crazy, setInterval messes w/ gsap so here's the fix */

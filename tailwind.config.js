@@ -82,6 +82,9 @@ module.exports = {
           '100%': { transform: 'rotate(90deg)' },
         },
       },
+      screens: {
+        'phone-landscape': { raw: '(max-height: 600px)' },
+      },
     },
   },
   plugins: [],

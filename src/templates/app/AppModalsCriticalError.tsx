@@ -1,7 +1,7 @@
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 
 const AppModalsCriticalError = (
-  props: IStylePropsInterface & { error: string; freshSongEdit?: boolean }
+  props: IStylePropsInterface & { error: string }
 ) => {
   return (
     <div
@@ -12,7 +12,7 @@ const AppModalsCriticalError = (
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.2"
         strokeLinecap="round"
         strokeLinejoin="round"
         className="flex-[0_0_40%] w-full"
@@ -21,7 +21,7 @@ const AppModalsCriticalError = (
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
-      <strong>{props.error}</strong>
+      <strong className="w-10/12 text-center">{props.error}</strong>
     </div>
   );
 };
