@@ -1,23 +1,37 @@
 import GiphySVG from '@/svgs/app/makeVideo/Giphy';
 import MovieAndPictureSVG from '@/svgs/app/makeVideo/MovieAndPicture';
+import type { IAppModalPaneProps } from '@/utils/interfaces/AppModalState';
 import type { IBasicPropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 
-const SourceChoice = (props: IBasicPropsInterface) => {
+const SourceChoice = (
+  props: IBasicPropsInterface &
+    IAppModalPaneProps & {
+      choiceSetterCallback: (choice: 'local' | 'giphy') => void;
+    }
+) => {
   return (
     <div
       className={`${props.className} relative p-2 flex flex-col flex-nowrap phone-landscape:flex-row`}
     >
-      <button className="text-white flex-1 rounded-t bg-app-modal-xl-lighter hover:bg-white/10 flex justify-center content-center flex-wrap gap-3">
+      <button
+        className="text-white flex-1 rounded-t bg-app-modal-xl-lighter hover:bg-white/10 flex justify-center content-center flex-wrap gap-3"
+        disabled={!props.isActive}
+        onClick={() => props.choiceSetterCallback('giphy')}
+      >
         <GiphySVG
           className="flex-[0_0_90%] phone-landscape:flex-[0_0_70%]"
-          runAnimation={true}
+          runAnimation={props.isActive}
         />
         <span className="flex-[0_0_100%] font-bold text-lg">from GIPHY</span>
       </button>
-      <button className="text-white flex-1 rounded-t bg-app-modal-xl-lighter hover:bg-white/10 flex justify-center content-center flex-wrap gap-3">
+      <button
+        className="text-white flex-1 rounded-t bg-app-modal-xl-lighter hover:bg-white/10 flex justify-center content-center flex-wrap gap-3"
+        disabled={!props.isActive}
+        onClick={() => props.choiceSetterCallback('local')}
+      >
         <MovieAndPictureSVG
           className="flex-[0_0_90%] h-3/6 phone-landscape:h-2/6"
-          runAnimation={true}
+          runAnimation={props.isActive}
         />
         <span className="flex-[0_0_100%] font-bold text-lg">from a file</span>
       </button>
@@ -34,6 +48,9 @@ const SourceChoice = (props: IBasicPropsInterface) => {
           OR
         </span>
       </div>
+      {!props.isActive && (
+        <div className="absolute top-0 left-0 w-full h-full rounded opacity-80 bg-app-element-disabled"></div>
+      )}
     </div>
   );
 };

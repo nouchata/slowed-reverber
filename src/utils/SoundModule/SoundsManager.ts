@@ -1,3 +1,5 @@
+import type { FFmpeg } from '@ffmpeg/ffmpeg';
+import { createFFmpeg } from '@ffmpeg/ffmpeg';
 import type Reverb from '@logue/reverb';
 import type { IDBPDatabase } from 'idb';
 import { openDB } from 'idb';
@@ -48,6 +50,8 @@ export default class SoundsManager {
 
   private ellipsedTime = 0;
 
+  public encoder?: FFmpeg;
+
   /* callbacks */
   private afterInitData: ISoundsManagerCallbacks;
 
@@ -80,6 +84,28 @@ export default class SoundsManager {
         error: { type: 'critical', value: reason.message },
       })
     );
+
+    try {
+      this.encoder = createFFmpeg({
+        corePath:
+          process.env.NODE_ENV !== 'production'
+            ? new URL('assets/js/ffmpeg-core.js', document.location.origin).href
+            : undefined,
+      });
+      this.encoder.load().catch((reason) =>
+        this.afterInitData.setAppDataCallback({
+          mediumModalText: `The video/audio encoder stumbled upon a problem during init.
+          You can still use the app but export options will be restricted.
+          (Error: ${reason.message})`,
+        })
+      );
+    } catch (e: any) {
+      this.afterInitData.setAppDataCallback({
+        mediumModalText: `The video/audio encoder stumbled upon a problem during init.
+        You can still use the app but export options will be restricted.
+        (Error: ${e.message})`,
+      });
+    }
   }
 
   private async asyncInit() {
@@ -436,6 +462,37 @@ export default class SoundsManager {
         values.dontChangePitch && soundInfoDataUpdated.speedValue
           ? 1 / soundInfoDataUpdated.speedValue
           : 1;
+  }
+
+  public async updateVisualSource(arrayBuffer: ArrayBuffer) {
+    if (!this.isFullyInit)
+      throw new Error('The database is not (yet) initialized...');
+    /* basic check to prevent bad database assignation */
+    if (!this.currentSound.soundInfoStore || !this.currentSound.soundInfoKey)
+      return;
+    const hash = SparkMD5.ArrayBuffer.hash(arrayBuffer);
+    /* data injection */
+    if (!(await this.songsDb!.get('sounds-visual-blob', hash))) {
+      await this.songsDb!.add('sounds-visual-blob', {
+        data: arrayBuffer,
+        hash,
+      });
+    }
+    /* used for cleaning issues */
+    const oldHash = this.currentSound.soundInfoData?.blobVisualHash;
+    /* hash ref update on the current sound */
+    await this.updateCurrentSound({ blobVisualHash: hash });
+
+    /* cleaning the visual data if there's no sounds using it */
+    if (
+      oldHash &&
+      !(await this.songsDb!.getFromIndex(
+        'sounds-info',
+        'by-visual-blob-key',
+        oldHash
+      ))
+    )
+      await this.songsDb!.delete('sounds-visual-blob', oldHash);
   }
 
   public async tweakDataCurrentSound(

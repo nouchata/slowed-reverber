@@ -1,18 +1,11 @@
-import type { Dispatch, SetStateAction } from 'react';
 import { useContext, useEffect, useRef } from 'react';
 
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
+import type { IAppModalPaneProps } from '@/utils/interfaces/AppModalState';
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 
-const EditStrings = (
-  props: IStylePropsInterface & {
-    setNextCallback?: Dispatch<
-      SetStateAction<(() => Promise<boolean>) | undefined>
-    >;
-    isActive: boolean;
-  }
-) => {
+const EditStrings = (props: IStylePropsInterface & IAppModalPaneProps) => {
   const { currentSound, soundsManager } = useContext(SoundsManagerContext);
   const { setAppData } = useContext(AppDataContext);
   const inputTitleRef = useRef<HTMLInputElement>(null);

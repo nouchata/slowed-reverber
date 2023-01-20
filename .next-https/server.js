@@ -27,6 +27,11 @@ const handle = app.getRequestHandler();
   await app.prepare();
   const server = createServer(httpsOptions, (req, res) => {
     const parsedUrl = parse(req.url, true);
+
+    /* required to use ffmpeg.wasm in a browser environment */
+    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+
     handle(req, res, parsedUrl);
   });
   let serverPort = 3000;

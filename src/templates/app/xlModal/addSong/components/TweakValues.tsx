@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from 'react';
 import { useContext, useEffect, useState } from 'react';
 
 import LowpassSVG from '@/svgs/app/addSong/editValues/Lowpass';
@@ -6,19 +5,13 @@ import ReverbSVG from '@/svgs/app/addSong/editValues/Reverb';
 import SpeedSVG from '@/svgs/app/addSong/editValues/Speed';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
+import type { IAppModalPaneProps } from '@/utils/interfaces/AppModalState';
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 import SoundsManager from '@/utils/SoundModule/SoundsManager';
 
 import TweakValuesSlider from './tweakValues/TweakValuesSlider';
 
-const TweakValues = (
-  props: IStylePropsInterface & {
-    setNextCallback?: Dispatch<
-      SetStateAction<(() => Promise<boolean>) | undefined>
-    >;
-    isActive: boolean;
-  }
-) => {
+const TweakValues = (props: IStylePropsInterface & IAppModalPaneProps) => {
   const { currentSound, soundsManager } = useContext(SoundsManagerContext);
   const { setAppData } = useContext(AppDataContext);
   const [arbitraryValue, setArbitraryValue] = useState(false);
@@ -80,7 +73,7 @@ const TweakValues = (
           <span className="text-xs h-4 flex-[0_0_100%]">(experimental)</span>
         </button>
         {!props.isActive && (
-          <div className="absolute w-full h-full top-0 left-0 rounded bg-app-player-disabled opacity-50"></div>
+          <div className="absolute w-full h-full top-0 left-0 rounded bg-app-element-disabled opacity-50"></div>
         )}
       </div>
       <div className="relative flex-[0_0_120px] box-border p-1 flex flex-col flex-nowrap bg-app-input-bg rounded drop-shadow-md hover:outline-2 hover:outline-app-input-border hover:outline hover:outline-offset-1">
@@ -122,7 +115,7 @@ const TweakValues = (
           />
         </div>
         {!props.isActive && (
-          <div className="absolute w-full h-full top-0 left-0 rounded bg-app-player-disabled opacity-50"></div>
+          <div className="absolute w-full h-full top-0 left-0 rounded bg-app-element-disabled opacity-50"></div>
         )}
       </div>
       <div className="relative flex-[0_0_120px] box-border p-1 flex flex-col flex-nowrap bg-app-input-bg rounded drop-shadow-md hover:outline-2 hover:outline-app-input-border hover:outline hover:outline-offset-1">
@@ -163,7 +156,7 @@ const TweakValues = (
           />
         </div>
         {!props.isActive && (
-          <div className="absolute w-full h-full top-0 left-0 rounded bg-app-player-disabled opacity-50"></div>
+          <div className="absolute w-full h-full top-0 left-0 rounded bg-app-element-disabled opacity-50"></div>
         )}
       </div>
       <div className="relative flex-[0_0_120px] box-border p-1 flex flex-col flex-nowrap bg-app-input-bg rounded drop-shadow-md hover:outline-2 hover:outline-app-input-border hover:outline hover:outline-offset-1">
@@ -204,7 +197,7 @@ const TweakValues = (
           />
         </div>
         {!props.isActive && (
-          <div className="absolute w-full h-full top-0 left-0 rounded bg-app-player-disabled opacity-50"></div>
+          <div className="absolute w-full h-full top-0 left-0 rounded bg-app-element-disabled opacity-50"></div>
         )}
       </div>
     </form>

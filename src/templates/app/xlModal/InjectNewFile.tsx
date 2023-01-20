@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 
 import NewFileSVG from '@/svgs/app/addSong/NewFile';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
+import type { IAppModalPaneProps } from '@/utils/interfaces/AppModalState';
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 
 enum EInputFileState {
@@ -17,12 +18,12 @@ const buttonText = [
 ];
 
 const InjectNewFile = (
-  props: IStylePropsInterface & {
-    successCallback: Function;
-    processCallback: (file: File) => Promise<any>;
-    isActive: boolean;
-    fileTypes: Array<string>;
-  }
+  props: IStylePropsInterface &
+    IAppModalPaneProps & {
+      successCallback: Function;
+      processCallback: (file: File) => Promise<any>;
+      fileTypes: Array<string>;
+    }
 ) => {
   const { appData, setAppData } = useContext(AppDataContext);
 
@@ -95,7 +96,7 @@ const InjectNewFile = (
     else buttonRef.current!.classList.remove('outline-dashed');
   }, [appData!.fileDragAndDrop]);
   return (
-    <div className={`text-white ${props?.className}`}>
+    <div className={`relative text-white ${props?.className}`}>
       <div className={`h-full w-full min-h-[400px]`}>
         <input
           ref={inputFileRef}
@@ -155,6 +156,9 @@ const InjectNewFile = (
           </strong>
         </button>
       </div>
+      {processingFileState === EInputFileState.DONE && (
+        <div className="absolute w-full h-full top-0 left-0 bg-app-element-disabled opacity-50"></div>
+      )}
     </div>
   );
 };

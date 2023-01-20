@@ -13,7 +13,6 @@ const AppModals = () => {
   const { router, oldRoutes } = useContext(AppDataContext).appData!;
   /* used to get app-related error messages */
   const { appData, setAppData } = useContext(AppDataContext);
-  /* used to get soundsmanager-related error messages */
   const { soundsManager, isSoundsManagerInit } =
     useContext(SoundsManagerContext);
 
@@ -31,7 +30,7 @@ const AppModals = () => {
   /* async loading for the xl modal content w/ next/dynamic */
   const [XLDynamicImport, setXLDynamicImport] = useState<any>(undefined);
 
-  /* used to shut down automatically the error modal after a second if the user hasn't */
+  /* used to shut down automatically the error modal after some time if the user hasn't */
   const timeoutErrorModal = useRef<any>(undefined);
 
   useIsomorphicLayoutEffect(() => {
@@ -148,7 +147,7 @@ const AppModals = () => {
         );
       } else if (
         router.pathname === '/app/songs' &&
-        router.query.md === 'makeVideo'
+        router.query.md === 'editVisual'
       ) {
         /* closes the modal if there are no song in memory */
         // if (!uselessToResetSong) {
@@ -156,11 +155,12 @@ const AppModals = () => {
         //   return;
         // }
         setXLDynamicImport(
-          dynamic(() => import('./xlModal/makeVideo/MakeVideoModal'), {
+          dynamic(() => import('./xlModal/addVisual/AddVisualModal'), {
             suspense: true,
           })
         );
-      }
+      } else if (lastHistoryEntry) router.back();
+      else router.push('/app/songs');
     } else {
       modalContainerTl.current.reverse();
       modalXlTl.current.reverse();
@@ -228,7 +228,7 @@ const AppModals = () => {
             </p>
             {appData.mediumModalText && appData.error.type !== 'critical' && (
               <button
-                className="w-full py-2 border-t-2 border-t-app-modal-xl-background"
+                className="w-full py-2 border-t-2 border-t-app-modal-xl-background font-extrabold"
                 onClick={() => {
                   setAppData!({ mediumModalText: '' });
                 }}

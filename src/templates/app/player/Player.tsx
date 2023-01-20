@@ -72,7 +72,7 @@ const Player = (props: IStylePropsInterface) => {
         {minutesSeconds[0]}:{minutesSeconds[1]}
       </span>
       {!(isCurrentSoundReady && isSoundsManagerInit) && (
-        <div className="absolute w-full h-full rounded opacity-80 bg-app-player-disabled"></div>
+        <div className="absolute w-full h-full rounded opacity-80 bg-app-element-disabled"></div>
       )}
     </div>
   );

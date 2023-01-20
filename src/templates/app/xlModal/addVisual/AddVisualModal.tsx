@@ -6,50 +6,49 @@ import { EAppModalState } from '@/utils/interfaces/AppModalState';
 
 import AppModalsCriticalError from '../../AppModalsCriticalError';
 import Player from '../../player/Player';
+import InjectNewFile from '../InjectNewFile';
 import XlModalHeader from '../layout/XlModalHeader';
 import ModalXlLoading from '../ModalXlLoading';
+import InjectFromGiphy from './components/giphy/InjectFromGiphy';
+import SaveVisual from './components/SaveVisual';
 import SourceChoice from './components/SourceChoice';
 
 enum EMakeVideoState {
   CHOICE,
-  LOCAL_SOURCE,
-  GIPHY_SOURCE,
+  SOURCE,
   ENCODE_VIDEO,
 }
 
-const editStateOffset = [0, -100, -100, -200];
+const editStateOffset = [0, -100, -200];
 
-const editStateTitle = [
-  'Source selector',
-  'Local source',
-  'GIPHY source',
-  'Encode video',
-];
+const editStateTitle = ['Source selector', 'Injection', 'Encode video'];
+const injectionTitle = { local: 'File injection', giphy: 'GIPHY injection' };
 
 /* left is previous, right is next */
 const editStateBtnAvailability: Array<[boolean, boolean]> = [
   [false, false],
   [true, false],
   [true, false],
-  [true, false],
 ];
 
-const MakeVideoModal = () => {
+const AddVisualModal = () => {
   const [modalState, setModalState] = useState<{
     state: EAppModalState;
     error?: string;
   }>({ state: EAppModalState.LOADING });
   const { router, oldRoutes } = useContext(AppDataContext).appData!;
   const { currentSound, soundsManager } = useContext(SoundsManagerContext);
+
+  const [currentInjectionPane, setCurrentInjectionPane] = useState<
+    'local' | 'giphy'
+  >();
   const [currentEditState, setCurrentEditState] = useState<EMakeVideoState>(
     currentSound!.visualSourceData
       ? EMakeVideoState.ENCODE_VIDEO
       : EMakeVideoState.CHOICE
   );
-  const [previousBtnCallback /* , setPreviousBtnCallback */] =
-    useState<() => Promise<boolean>>();
-  const [nextBtnCallback /* , setNextBtnCallback */] =
-    useState<() => Promise<boolean>>();
+
+  const [draftVisual, setDraftVisual] = useState<File | Blob>();
   const [aButtonIsPressed, setAButtonIsPressed] = useState<boolean>(false);
 
   useEffect(() => {
@@ -108,11 +107,22 @@ const MakeVideoModal = () => {
           aButtonIsPressed={aButtonIsPressed}
           currentPaneState={currentEditState}
           setAButtonIsPressed={setAButtonIsPressed}
-          nextBtnCallback={nextBtnCallback}
-          previousBtnCallback={previousBtnCallback}
+          /* the navigation buttons are only used by the sources selector so
+           * their callbacks are directly defined here for now since they likely
+           * won't be edited */
+          nextBtnCallback={undefined}
+          previousBtnCallback={async () => {
+            setCurrentEditState(EMakeVideoState.CHOICE);
+            setDraftVisual(undefined);
+            return false;
+          }}
           setPaneState={setCurrentEditState}
           buttonAvailability={editStateBtnAvailability[currentEditState]!}
-          title={editStateTitle[currentEditState]!}
+          title={
+            currentEditState === EMakeVideoState.SOURCE && currentInjectionPane
+              ? injectionTitle[currentInjectionPane]
+              : editStateTitle[currentEditState]!
+          }
         />
         <div
           /* the height calc fixes the overflow bc for some reasons it doesn't
@@ -122,7 +132,56 @@ const MakeVideoModal = () => {
             transform: `translateX(${editStateOffset[currentEditState]}%)`,
           }}
         >
-          <SourceChoice className="box-border flex-[0_0_100%] overflow-auto" />
+          <SourceChoice
+            className="box-border flex-[0_0_100%] overflow-auto"
+            isActive={currentEditState === EMakeVideoState.CHOICE}
+            choiceSetterCallback={(choice) => {
+              setCurrentInjectionPane(choice);
+              setCurrentEditState(EMakeVideoState.SOURCE);
+            }}
+          />
+          <div
+            id="make-video-modal-source-inject-container"
+            className="box-border flex-[0_0_100%] overflow-auto"
+          >
+            {currentInjectionPane === 'local' && (
+              <InjectNewFile
+                className="w-full h-full overflow-auto"
+                key={currentEditState}
+                isActive={currentEditState === EMakeVideoState.SOURCE}
+                processCallback={async (file) => {
+                  setDraftVisual(file);
+                }}
+                successCallback={() =>
+                  setCurrentEditState(EMakeVideoState.ENCODE_VIDEO)
+                }
+                fileTypes={['image', 'video']}
+              />
+            )}
+            {currentInjectionPane === 'giphy' && (
+              <InjectFromGiphy
+                className="w-full h-full overflow-auto"
+                key={currentEditState}
+                processCallback={async (file) => {
+                  setDraftVisual(file);
+                }}
+                successCallback={() =>
+                  setCurrentEditState(EMakeVideoState.ENCODE_VIDEO)
+                }
+                isActive={currentEditState === EMakeVideoState.SOURCE}
+              />
+            )}
+            {!currentInjectionPane && <ModalXlLoading />}
+          </div>
+          <SaveVisual
+            className="box-border flex-[0_0_100%] overflow-auto"
+            isActive={currentEditState === EMakeVideoState.ENCODE_VIDEO}
+            draftData={draftVisual}
+            successCallback={() => {
+              if (oldRoutes.length) router.back();
+              else router.push('/app/songs');
+            }}
+          />
         </div>
       </div>
       <Player
@@ -134,4 +193,4 @@ const MakeVideoModal = () => {
   );
 };
 
-export default MakeVideoModal;
+export default AddVisualModal;

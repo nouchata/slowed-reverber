@@ -17,7 +17,7 @@ module.exports = {
       backgroundImage: {
         'app-input-disabled':
           'repeating-linear-gradient(-55deg,#303236,#303236 10px,#2b2d31 10px,#2b2d31 20px)',
-        'app-player-disabled':
+        'app-element-disabled':
           'repeating-linear-gradient(-55deg,#222,#222 10px,#333 10px,#333 20px)',
       },
       colors: {
@@ -65,6 +65,8 @@ module.exports = {
         'loading-logo-spin': 'loading-logo-spin 10s linear infinite',
         'inject-new-file-rotate':
           'quarter-turn-mid-pause 1.5s ease-in-out infinite',
+        'element-scale-emphasis':
+          'slight-scale-extension 0.5s alternate infinite',
       },
       keyframes: {
         'big-elem-ping': {
@@ -80,6 +82,10 @@ module.exports = {
           '10%': { transform: 'rotate(-30deg)' },
           '50%': { transform: 'rotate(90deg)' },
           '100%': { transform: 'rotate(90deg)' },
+        },
+        'slight-scale-extension': {
+          '0%': { transform: 'scale(1)' },
+          '100%': { transform: 'scale(1.1)' },
         },
       },
       screens: {
