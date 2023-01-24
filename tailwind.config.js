@@ -19,6 +19,8 @@ module.exports = {
           'repeating-linear-gradient(-55deg,#303236,#303236 10px,#2b2d31 10px,#2b2d31 20px)',
         'app-element-disabled':
           'repeating-linear-gradient(-55deg,#222,#222 10px,#333 10px,#333 20px)',
+        'app-element-disabled-faded':
+          'repeating-linear-gradient(-55deg,rgba(34, 34, 34, 0.5),rgba(34, 34, 34, 0.5) 10px,rgba(51, 51, 51, 0.5) 10px,rgba(51, 51, 51, 0.5) 20px)',
       },
       colors: {
         app: {
@@ -67,6 +69,7 @@ module.exports = {
           'quarter-turn-mid-pause 1.5s ease-in-out infinite',
         'element-scale-emphasis':
           'slight-scale-extension 0.5s alternate infinite',
+        'inline-blink': 'inline-blink 1s linear infinite',
       },
       keyframes: {
         'big-elem-ping': {
@@ -86,6 +89,13 @@ module.exports = {
         'slight-scale-extension': {
           '0%': { transform: 'scale(1)' },
           '100%': { transform: 'scale(1.1)' },
+        },
+        'inline-blink': {
+          '0%': { opacity: 1 },
+          '49.9%': { opacity: 1 },
+          '50%': { opacity: 0 },
+          '99.9%': { opacity: 0 },
+          '100%': { opacity: 1 },
         },
       },
       screens: {

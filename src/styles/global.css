@@ -1,24 +1,8 @@
 @tailwind base;
 
-a {
-  @apply text-blue-700;
-}
-
-a:hover {
-  @apply border-b-2 border-blue-700;
-}
-
 @tailwind components;
 
 @tailwind utilities;
-
-.content p {
-  @apply my-6;
-}
-
-.content ul {
-  @apply my-6;
-}
 
 /* 100vh messes up on mobile device so it's the fix
  * (https://stackoverflow.com/questions/52848856/100vh-height-when-address-bar-is-shown-chrome-mobile)

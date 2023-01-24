@@ -42,7 +42,7 @@ const Index = () => {
           isCalled = true;
           fn(...args);
         };
-      })(router.push, ['/about']);
+      })(router.push, ['/app/songs']);
       observer = Observer.create({
         // target: indexDivRef.current,
         type: 'wheel,touch,pointer',
@@ -90,7 +90,7 @@ const Index = () => {
         />
         <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
           <IndexLogoSVG className="w-4/5 md:w-full h-[50vh] box-border p-10" />
-          <Link href={'/about'}>
+          <Link href={'/app/songs'}>
             <button className="absolute w-full bottom-0 h-[20vh] box-border flex justify-center items-end pb-5 bg-transparent border-none">
               <IndexArrowSVG direction="down" />
             </button>

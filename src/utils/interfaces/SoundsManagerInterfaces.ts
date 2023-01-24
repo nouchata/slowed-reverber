@@ -10,6 +10,7 @@ export type ISoundsManagerCallbacks = {
   setSoundReadyCallback: Dispatch<SetStateAction<boolean>>;
   setPlayStateCallback: Dispatch<SetStateAction<boolean>>;
   setAppDataCallback: Dispatch<Partial<IAppData>>;
+  setEncoderStateCallback: Dispatch<SetStateAction<EEncoderState>>;
 };
 
 export type ISoundsManagerConstructorArgs = Partial<
@@ -35,6 +36,12 @@ export enum ESoundsManagerState {
   UNINITIALIZE,
   INITIALIZE,
   ENDED,
+}
+
+export enum EEncoderState {
+  LOADING,
+  LOADED,
+  ERROR,
 }
 
 /* DB INTERFACES */
@@ -75,7 +82,8 @@ export type ISoundsTempInfoStore = ISoundsInfoStoreAssets & {
 
 /* blobs store elements' content */
 export type ISoundsBlobStoreValue = {
-  data: Blob | ArrayBuffer;
+  data: ArrayBuffer;
+  type: string;
   /* the blob stores use hash to prevent copy of the same inputs */
   hash: string;
 };

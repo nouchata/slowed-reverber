@@ -7,13 +7,14 @@ import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import useIsomorphicLayoutEffect from '@/utils/useIsomorphicLayoutEffect';
 
+import Player from './player/Player';
 import ModalXlLoading from './xlModal/ModalXlLoading';
 
 const AppModals = () => {
   const { router, oldRoutes } = useContext(AppDataContext).appData!;
   /* used to get app-related error messages */
   const { appData, setAppData } = useContext(AppDataContext);
-  const { soundsManager, isSoundsManagerInit } =
+  const { isSoundsManagerInit, isCurrentSoundReady } =
     useContext(SoundsManagerContext);
 
   const modalContainerRef = useRef<HTMLDivElement>(null);
@@ -29,6 +30,8 @@ const AppModals = () => {
 
   /* async loading for the xl modal content w/ next/dynamic */
   const [XLDynamicImport, setXLDynamicImport] = useState<any>(undefined);
+  /* player extra class if needed (to fade it for example) */
+  const [playerExtraClasses, setPlayerExtraClasses] = useState('');
 
   /* used to shut down automatically the error modal after some time if the user hasn't */
   const timeoutErrorModal = useRef<any>(undefined);
@@ -102,17 +105,6 @@ const AppModals = () => {
 
   /* modal xl routing */
   useEffect(() => {
-    /* proceeds to check if we already have a song loaded in the memory
-     * and prevents the soundsmanager to reinject it between related
-     * pages (e.g. going from view to editSong) */
-    const lastHistoryEntry = oldRoutes.length
-      ? oldRoutes[oldRoutes.length - 1]
-      : undefined;
-    const uselessToResetSong =
-      lastHistoryEntry &&
-      lastHistoryEntry.pathname === '/app/songs' &&
-      lastHistoryEntry.query.md;
-
     /* query parameter to set a xl modal */
     if (router.query.md) {
       modalContainerTl.current.play();
@@ -125,11 +117,8 @@ const AppModals = () => {
       /* since all xl modal pages needs the sm it waits for it to be init */
       if (!isSoundsManagerInit) return;
 
-      /* this part handles the dynamic import of the modal files and the extra logic
-       * needed by them */
+      /* this part handles the dynamic import of the modal files */
       if (router.pathname === '/app/songs' && router.query.md === 'addSong') {
-        /* reset to allow a new entry */
-        soundsManager?.resetCurrentSound();
         setXLDynamicImport(
           dynamic(() => import('./xlModal/addSong/AddSongModal'), {
             suspense: true,
@@ -139,7 +128,6 @@ const AppModals = () => {
         router.pathname === '/app/songs' &&
         router.query.md === 'editSong'
       ) {
-        if (!uselessToResetSong) soundsManager?.resetCurrentSound();
         setXLDynamicImport(
           dynamic(() => import('./xlModal/addSong/AddSongModal'), {
             suspense: true,
@@ -149,17 +137,21 @@ const AppModals = () => {
         router.pathname === '/app/songs' &&
         router.query.md === 'editVisual'
       ) {
-        /* closes the modal if there are no song in memory */
-        // if (!uselessToResetSong) {
-        //   router.push('/app/songs');
-        //   return;
-        // }
         setXLDynamicImport(
           dynamic(() => import('./xlModal/addVisual/AddVisualModal'), {
             suspense: true,
           })
         );
-      } else if (lastHistoryEntry) router.back();
+      } else if (
+        router.pathname === '/app/songs' &&
+        router.query.md === 'exportMedia'
+      ) {
+        setXLDynamicImport(
+          dynamic(() => import('./xlModal/exportMedia/ExportMediaModal'), {
+            suspense: true,
+          })
+        );
+      } else if (oldRoutes.length) router.back();
       else router.push('/app/songs');
     } else {
       modalContainerTl.current.reverse();
@@ -269,16 +261,26 @@ const AppModals = () => {
           </div>
           <div
             id="add-display-xl-modal-container"
-            className="w-full h-full box-border pt-[20px] overflow-hidden"
+            className="relative w-full h-full box-border pt-[20px] overflow-hidden"
           >
             {isSoundsManagerInit && XLDynamicImport ? (
               /* modal pages are loaded aside w/ suspense & next/dynamic for bundle size reduction */
               <Suspense fallback={<ModalXlLoading />}>
-                <XLDynamicImport />
+                <XLDynamicImport
+                  setPlayerExtraClasses={setPlayerExtraClasses}
+                />
               </Suspense>
             ) : (
               <ModalXlLoading />
             )}
+            <Player
+              style={{
+                /* used to show the player by disable the transform property */
+                transform: isCurrentSoundReady ? 'none' : undefined,
+              }}
+              className={`absolute bottom-5 w-[90%] left-[5%] h-12 bg-app-modal-xl-lighter drop-shadow-lg translate-y-32 transition-all z-10 ${playerExtraClasses}`}
+              cutAudio={!router.query.md}
+            />
           </div>
         </div>
         <div></div>

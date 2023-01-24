@@ -2,6 +2,7 @@ import GiphySVG from '@/svgs/app/makeVideo/Giphy';
 import MovieAndPictureSVG from '@/svgs/app/makeVideo/MovieAndPicture';
 import type { IAppModalPaneProps } from '@/utils/interfaces/AppModalState';
 import type { IBasicPropsInterface } from '@/utils/interfaces/BasicPropsInterface';
+import useNetworkState from '@/utils/useNetworkState';
 
 const SourceChoice = (
   props: IBasicPropsInterface &
@@ -9,20 +10,28 @@ const SourceChoice = (
       choiceSetterCallback: (choice: 'local' | 'giphy') => void;
     }
 ) => {
+  const isInternetAvailable = useNetworkState();
   return (
     <div
       className={`${props.className} relative p-2 flex flex-col flex-nowrap phone-landscape:flex-row`}
     >
       <button
-        className="text-white flex-1 rounded-t bg-app-modal-xl-lighter hover:bg-white/10 flex justify-center content-center flex-wrap gap-3"
-        disabled={!props.isActive}
+        className="relative text-white flex-1 rounded-t bg-app-modal-xl-lighter hover:bg-white/10 flex justify-center content-center flex-wrap gap-3"
+        disabled={!props.isActive || !isInternetAvailable}
         onClick={() => props.choiceSetterCallback('giphy')}
       >
         <GiphySVG
           className="flex-[0_0_90%] phone-landscape:flex-[0_0_70%]"
-          runAnimation={props.isActive}
+          runAnimation={props.isActive && isInternetAvailable}
         />
         <span className="flex-[0_0_100%] font-bold text-lg">from GIPHY</span>
+        {!isInternetAvailable && (
+          <div className="bg-app-element-disabled-faded absolute top-0 left-0 w-full h-full flex justify-center items-center overflow-hidden">
+            <span className="bg-red-800 p-4 text-2xl font-extrabold -rotate-12 phone-landscape:text-lg">
+              INTERNET REQUIRED
+            </span>
+          </div>
+        )}
       </button>
       <button
         className="text-white flex-1 rounded-t bg-app-modal-xl-lighter hover:bg-white/10 flex justify-center content-center flex-wrap gap-3"

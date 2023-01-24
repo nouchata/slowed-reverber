@@ -1,5 +1,6 @@
 import { useContext, useRef } from 'react';
 
+import MenuSettingsSVG from '@/svgs/app/menu/MenuSettings';
 import MenuSongsSVG from '@/svgs/app/menu/MenuSongs';
 import AppHeader from '@/templates/app/AppHeader';
 import AppMenu from '@/templates/app/AppMenu';
@@ -12,7 +13,7 @@ import useWindowSize from '@/utils/useWindowSize';
 
 const menuItems = {
   Songs: MenuSongsSVG,
-  Settings: MenuSongsSVG,
+  Settings: MenuSettingsSVG,
 };
 
 const dragEventPreventDefaultTriggering = (e: any) => {

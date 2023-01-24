@@ -5,10 +5,12 @@ import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { IAppModalPaneProps } from '@/utils/interfaces/AppModalState';
 import type { IBasicPropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 
+import VisualDataPreview from '../../VisualDataPreview';
+
 const SaveVisual = (
   props: IBasicPropsInterface &
     IAppModalPaneProps & {
-      draftData?: Blob | File;
+      draftData?: Blob;
       successCallback: Function;
     }
 ) => {
@@ -19,8 +21,8 @@ const SaveVisual = (
     <div
       className={`${props.className} flex flex-col flex-nowrap items-center justify-center pb-20 phone-landscape:justify-start`}
     >
-      <div
-        className={`w-[40vh] h-[40vh] min-h-[150px] min-w-[150px] max-w-[80vw] outline-dashed outline-2 outline-offset-8 rounded my-6 ${
+      <VisualDataPreview
+        className={`text-app-input-border w-[40vh] h-[40vh] min-h-[150px] min-w-[150px] max-w-[80vw] outline-dashed outline-2 outline-offset-8 rounded my-6 ${
           !props.draftData || !props.isActive
             ? 'outline-app-input-border'
             : 'outline-amber-300'
@@ -29,41 +31,9 @@ const SaveVisual = (
             ? 'bg-transparent'
             : 'bg-amber-300/50'
         }`}
-      >
-        {props.draftData?.type.includes('image') && (
-          <img
-            alt="New visual source preview"
-            className="w-full h-full object-cover rounded"
-            src={URL.createObjectURL(props.draftData)}
-          />
-        )}
-        {props.draftData?.type.includes('video') && (
-          <video
-            about="New visual source preview"
-            controls={false}
-            muted={true}
-            autoPlay={true}
-            loop={true}
-            className="w-full h-full object-cover rounded"
-            src={URL.createObjectURL(props.draftData)}
-          />
-        )}
-        {(!props.draftData || !props.isActive) && (
-          <svg
-            /* cross svg */
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="stroke-app-input-border opacity-50 w-full h-full"
-          >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        )}
-      </div>
+        isActive={props.isActive}
+        blob={props.draftData}
+      />
       <button
         className={`w-3/4 max-w-[40vh] min-w-[220px] flex-[0_0_50px] text-app-modal-xl-background rounded drop-shadow-md font-extrabold ${
           !props.draftData || !props.isActive || isSaving
@@ -76,7 +46,10 @@ const SaveVisual = (
           setIsSaving(true);
           (async () => {
             await soundsManager
-              ?.updateVisualSource(await props.draftData!.arrayBuffer())
+              ?.updateVisualSource(
+                await props.draftData!.arrayBuffer(),
+                props.draftData!.type
+              )
               .then(() => props.successCallback())
               .catch((reason) => {
                 /* error handling if addFile fails */

@@ -7,7 +7,7 @@ import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterfac
 import PlayerControlState from './PlayerControlState';
 import PlayerProgressState from './PlayerProgressState';
 
-const Player = (props: IStylePropsInterface) => {
+const Player = (props: IStylePropsInterface & { cutAudio: boolean }) => {
   const {
     isCurrentSoundReady,
     isSoundsManagerInit,
@@ -21,11 +21,13 @@ const Player = (props: IStylePropsInterface) => {
     '--',
     '--',
   ]);
-  /* cut the audio if the player leaves the DOM */
+  /* used to cut the audio (e.g. when no xl modal is shown) */
   useEffect(() => {
-    const sm = soundsManager!;
-    return () => sm.cutAudio();
-  }, []);
+    const sm = soundsManager;
+    if (props.cutAudio) sm?.cutAudio();
+    /* also tries to cut if the component is removed from the dom */
+    return () => sm?.cutAudio();
+  }, [props.cutAudio, isSoundsManagerInit]);
   /* updates the duration display */
   useEffect(() => {
     /* total duration takes account of the speedvalue factor */

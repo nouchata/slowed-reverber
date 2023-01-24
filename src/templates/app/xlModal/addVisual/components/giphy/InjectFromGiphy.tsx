@@ -93,7 +93,7 @@ const InjectFromGiphy = (
           }
           /* fetching stuff */
           const response = await fetch(
-            update.gifData.images.original.webp
+            update.gifData.images.original.mp4
           ).catch((reason) => {
             setAppData!({ error: { type: 'normal', value: reason.message } });
           });

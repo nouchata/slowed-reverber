@@ -3,9 +3,14 @@ import { createFFmpeg } from '@ffmpeg/ffmpeg';
 import type Reverb from '@logue/reverb';
 import type { IDBPDatabase } from 'idb';
 import { openDB } from 'idb';
+import type { Dispatch } from 'react';
 import SparkMD5 from 'spark-md5';
 
+import type { IProgressVarsArgs } from '@/templates/app/xlModal/exportMedia/components/ExportExecution';
+
+import bufferToWave from '../bufferToWave';
 import type { IAppData } from '../contexts/AppDataContext';
+import { EExportChoices } from '../interfaces/ExportChoicesEnum';
 import type {
   ISoundsBlobStoreValue,
   ISoundsInfoStoreValue,
@@ -14,6 +19,8 @@ import type {
   ISoundsManagerCurrentSound,
   ISoundsManagerDB,
 } from '../interfaces/SoundsManagerInterfaces';
+import { EEncoderState } from '../interfaces/SoundsManagerInterfaces';
+import encoderCommands from './encoderCommands';
 
 export default class SoundsManager {
   /* state related */
@@ -50,7 +57,11 @@ export default class SoundsManager {
 
   private ellipsedTime = 0;
 
+  /* encoder / processor */
+
   public encoder?: FFmpeg;
+
+  private ReverbProcessor?: typeof Reverb;
 
   /* callbacks */
   private afterInitData: ISoundsManagerCallbacks;
@@ -72,6 +83,7 @@ export default class SoundsManager {
       setSoundReadyCallback: args.setSoundReadyCallback || (() => {}),
       setPlayStateCallback: args.setPlayStateCallback || (() => {}),
       setAppDataCallback: args.setAppDataCallback || (() => {}),
+      setEncoderStateCallback: args.setEncoderStateCallback || (() => {}),
     };
 
     this.dbVersion = args.dbVersion;
@@ -85,6 +97,7 @@ export default class SoundsManager {
       })
     );
 
+    /* ENCODER INIT */
     try {
       this.encoder = createFFmpeg({
         corePath:
@@ -92,14 +105,21 @@ export default class SoundsManager {
             ? new URL('assets/js/ffmpeg-core.js', document.location.origin).href
             : undefined,
       });
-      this.encoder.load().catch((reason) =>
-        this.afterInitData.setAppDataCallback({
-          mediumModalText: `The video/audio encoder stumbled upon a problem during init.
+      this.encoder
+        .load()
+        .then(() =>
+          this.afterInitData.setEncoderStateCallback(EEncoderState.LOADED)
+        )
+        .catch((reason) => {
+          this.afterInitData.setEncoderStateCallback(EEncoderState.ERROR);
+          this.afterInitData.setAppDataCallback({
+            mediumModalText: `The video/audio encoder stumbled upon a problem during init.
           You can still use the app but export options will be restricted.
           (Error: ${reason.message})`,
-        })
-      );
+          });
+        });
     } catch (e: any) {
+      this.afterInitData.setEncoderStateCallback(EEncoderState.ERROR);
       this.afterInitData.setAppDataCallback({
         mediumModalText: `The video/audio encoder stumbled upon a problem during init.
         You can still use the app but export options will be restricted.
@@ -195,8 +215,8 @@ export default class SoundsManager {
         'phase-vocoder-processor'
       );
 
-      const Reverb = (await import('@logue/reverb')).default;
-      this.reverbProcessor = new Reverb(this.audioContext);
+      this.ReverbProcessor = (await import('@logue/reverb')).default;
+      this.reverbProcessor = new this.ReverbProcessor(this.audioContext);
 
       this.muffledProcessor = this.audioContext.createBiquadFilter();
       this.muffledProcessor.type = 'lowpass';
@@ -288,6 +308,7 @@ export default class SoundsManager {
        * just hear the reverb alone when the source input disconnects
        * i love it haha */
       // this.muffledProcessor?.disconnect();
+      if (this.audioSourceInput) this.audioSourceInput.onended = null;
       this.audioSourceInput = undefined;
       } catch (e: any) { console.log(e.message); } //eslint-disable-line
   }
@@ -345,7 +366,7 @@ export default class SoundsManager {
   /* ------------- */
 
   /* file creation utils */
-  public async addFile(arrayBuffer: ArrayBuffer, name: string) {
+  public async addFile(arrayBuffer: ArrayBuffer, name: string, type: string) {
     /* exits if the constructor threw an error */
     if (!this.isFullyInit)
       throw new Error('The audio context is not (yet) initialized...');
@@ -353,6 +374,7 @@ export default class SoundsManager {
     tempCurrentSound.soundInfoStore = 'sounds-temp-info';
     tempCurrentSound.soundSourceData = {
       data: arrayBuffer,
+      type,
       hash: SparkMD5.ArrayBuffer.hash(arrayBuffer),
     };
     tempCurrentSound.soundInfoData = {
@@ -418,6 +440,221 @@ export default class SoundsManager {
     if (oldKey) await this.songsDb?.delete('sounds-temp-info', oldKey);
   }
 
+  /* ----------------- */
+  /* SONG EXPORT UTILS */
+  /* ----------------- */
+
+  public async exportSong(statusCallback: Dispatch<IProgressVarsArgs>) {
+    if (!this.isFullyInit || !this.encoder?.isLoaded)
+      throw new Error(
+        'The audio context / encoder is not (yet) initialized...'
+      );
+    if (!this.audioBufferInput)
+      throw new Error('There is no song loaded to process');
+    /* creating and offline context to make a static version of the song */
+    const offlineAudioContext = new OfflineAudioContext({
+      numberOfChannels: 2,
+      length:
+        44100 *
+        (this.audioBufferInput.duration /
+          (this.currentSound.soundInfoData?.speedValue || 1)),
+      sampleRate: 44100,
+    });
+
+    statusCallback({
+      progress: 0.1,
+      consoleEntry: { type: 'normal', entry: 'Offline audio context created' },
+    });
+
+    /* export processors */
+    await offlineAudioContext.audioWorklet.addModule(
+      '/assets/js/phase-vocoder.min.js'
+    );
+    const offlinePhaseVocoderProc = new AudioWorkletNode(
+      offlineAudioContext,
+      'phase-vocoder-processor'
+    );
+    offlinePhaseVocoderProc.parameters.get('pitchFactor')!.value = this
+      .currentSound.soundInfoData?.dontChangePitch
+      ? 1 / (this.currentSound.soundInfoData?.speedValue || 1)
+      : 1;
+
+    const offlineReverbProc = new this.ReverbProcessor!(
+      offlineAudioContext as any
+    );
+    offlineReverbProc.mix(this.currentSound.soundInfoData?.speedValue || 0);
+
+    const offlineMuffledProc = offlineAudioContext.createBiquadFilter();
+    offlineMuffledProc.type = 'lowpass';
+    offlineMuffledProc.frequency.setTargetAtTime(
+      22050 -
+        22050 *
+          ((this.currentSound.soundInfoData?.lowKeyEffectValue || 50) / 100),
+      0,
+      0
+    );
+
+    statusCallback({
+      progress: 0.2,
+      consoleEntry: { type: 'normal', entry: 'Audio processors configured' },
+    });
+
+    /* setting up the rendering */
+    const source = offlineAudioContext.createBufferSource();
+    source.buffer = this.audioBufferInput;
+    source.playbackRate.value =
+      this.currentSound.soundInfoData?.speedValue || 1;
+    // PROCESSING GO HERE
+    offlineReverbProc
+      .connect(source)
+      .connect(offlinePhaseVocoderProc)
+      .connect(offlineMuffledProc)
+      .connect(offlineAudioContext.destination);
+    source.start();
+
+    statusCallback({
+      progress: 0.3,
+      consoleEntry: {
+        type: 'normal',
+        entry: 'Starting rendering... It could take some time',
+      },
+    });
+
+    /* rendering and file making */
+    const renderedBuffer = await offlineAudioContext.startRendering();
+
+    statusCallback({
+      progress: 0.6,
+      consoleEntry: { type: 'success', entry: 'Rendering done' },
+    });
+
+    statusCallback({
+      progress: 0.7,
+      consoleEntry: { type: 'normal', entry: 'Blobification...' },
+    });
+
+    const blob = bufferToWave(renderedBuffer, offlineAudioContext.length);
+
+    statusCallback({
+      progress: 1,
+      consoleEntry: {
+        type: 'success',
+        entry: 'Raw edited song rendered',
+      },
+    });
+
+    return blob;
+  }
+
+  public async encoderUtils(
+    editedSong: ArrayBuffer,
+    choice: EExportChoices,
+    statusCallback: Dispatch<IProgressVarsArgs>
+  ) {
+    if (!this.isFullyInit || !this.encoder?.isLoaded)
+      throw new Error(
+        'The audio context / encoder is not (yet) initialized...'
+      );
+
+    /* encoder callbacks */
+    this.encoder!.setLogger(({ message }) => {
+      statusCallback({
+        consoleEntry: {
+          type: 'normal',
+          entry: message,
+        },
+      });
+    });
+
+    /* file registering */
+    this.encoder!.FS('writeFile', 'audio.file', new Uint8Array(editedSong));
+    if (choice === EExportChoices.TO_MP4 || choice === EExportChoices.TO_WEBM)
+      this.encoder!.FS(
+        'writeFile',
+        'rawvisual.file',
+        new Uint8Array(this.currentSound!.visualSourceData!.data!)
+      );
+    /* vars */
+    let command: Array<string> = [];
+    const totalDuration =
+      (this.currentSound!.soundBufferDuration || 0) /
+      (this.currentSound!.soundInfoData!.speedValue || 1);
+    const hours = Math.floor(totalDuration / 3600);
+    const minutes = Math.floor(totalDuration / 60 - hours * 60);
+    const seconds = Math.floor(totalDuration - minutes * 60);
+    const formatDuration = `${String(hours).padStart(2, '0')}:${String(
+      minutes
+    ).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    let blob: Blob = new Blob();
+
+    switch (choice) {
+      case EExportChoices.TO_AAC:
+        await this.encoder!.run(...encoderCommands.TO_AAC);
+        blob = new Blob([this.encoder!.FS('readFile', 'output.m4a').buffer], {
+          type: 'audio/m4a',
+        });
+        this.encoder!.FS('unlink', 'output.m4a');
+        break;
+
+      case EExportChoices.TO_MP3:
+        await this.encoder!.run(...encoderCommands.TO_MP3);
+        blob = new Blob([this.encoder!.FS('readFile', 'output.mp3').buffer], {
+          type: 'audio/mpeg',
+        });
+        this.encoder!.FS('unlink', 'output.mp3');
+        break;
+
+      case EExportChoices.TO_MP4:
+        await this.encoder!.run(...encoderCommands.TO_MP4);
+        statusCallback({ progress: 0.5 });
+        /* format the new command */
+        command = encoderCommands.TO_COPY_BUFFER;
+        command[command.findIndex((value) => value === 'TIME')] =
+          formatDuration;
+        command[command.findIndex((value) => value === 'VFILE')] = 'visual.mp4';
+        command[command.findIndex((value) => value === 'OUTPUT')] =
+          'output.mp4';
+        /* last command */
+        await this.encoder!.run(...command);
+        blob = new Blob([this.encoder!.FS('readFile', 'output.mp4').buffer], {
+          type: 'video/mp4',
+        });
+        this.encoder!.FS('unlink', 'output.mp4');
+        this.encoder!.FS('unlink', 'visual.mp4');
+        break;
+
+      case EExportChoices.TO_WEBM:
+        await this.encoder!.run(...encoderCommands.TO_WEBM);
+        statusCallback({ progress: 0.5 });
+        /* format the new command */
+        command = encoderCommands.TO_COPY_BUFFER;
+        command[command.findIndex((value) => value === 'TIME')] =
+          formatDuration;
+        command[command.findIndex((value) => value === 'VFILE')] =
+          'visual.webm';
+        command[command.findIndex((value) => value === 'OUTPUT')] =
+          'output.webm';
+        /* last command */
+        await this.encoder!.run(...command);
+        blob = new Blob([this.encoder!.FS('readFile', 'output.webm').buffer], {
+          type: 'video/webm',
+        });
+        this.encoder!.FS('unlink', 'output.webm');
+        this.encoder!.FS('unlink', 'visual.webm');
+        break;
+
+      default:
+        break;
+    }
+
+    statusCallback({ progress: 1 });
+
+    this.encoder!.FS('unlink', 'audio.file');
+    if (choice === EExportChoices.TO_MP4 || choice === EExportChoices.TO_WEBM)
+      this.encoder!.FS('unlink', 'rawvisual.file');
+    return blob;
+  }
+
   /* ------------------------------ */
   /* CURRENT SOUND & DATABASE UTILS */
   /* ------------------------------ */
@@ -464,7 +701,7 @@ export default class SoundsManager {
           : 1;
   }
 
-  public async updateVisualSource(arrayBuffer: ArrayBuffer) {
+  public async updateVisualSource(arrayBuffer: ArrayBuffer, type: string) {
     if (!this.isFullyInit)
       throw new Error('The database is not (yet) initialized...');
     /* basic check to prevent bad database assignation */
@@ -475,6 +712,7 @@ export default class SoundsManager {
     if (!(await this.songsDb!.get('sounds-visual-blob', hash))) {
       await this.songsDb!.add('sounds-visual-blob', {
         data: arrayBuffer,
+        type,
         hash,
       });
     }
@@ -623,8 +861,11 @@ export default class SoundsManager {
       this.afterInitData.setSoundReadyCallback(true);
     }
 
-    /* update */
+    /* state update ... */
     this.afterInitData.setCurrentSoundCallback(data);
+    /* ... though if this method is called multiple times in a row it may not
+     * be updated soon enough so it's also "locally" updated */
+    this.currentSound = data;
   }
 
   public contextUpdateCurrentSound(currentSound: ISoundsManagerCurrentSound) {

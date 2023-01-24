@@ -3,13 +3,10 @@ import { useContext } from 'react';
 import AppLayout from '@/layouts/AppLayout';
 import { Meta } from '@/layouts/Meta';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
-import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { NextPageLayoutInterface } from '@/utils/interfaces/NextPageLayoutInterface';
 
 const AppSongs: NextPageLayoutInterface = () => {
   const { router } = useContext(AppDataContext).appData!;
-  const { setAppData } = useContext(AppDataContext);
-  const { soundsManager } = useContext(SoundsManagerContext);
   return (
     <>
       <Meta
@@ -19,45 +16,7 @@ const AppSongs: NextPageLayoutInterface = () => {
           router.asPath
         }
       ></Meta>
-      <div className="h-full w-full">
-        <input
-          type="file"
-          onChange={(e) => {
-            if (!(e.target as HTMLInputElement).files?.length) return;
-            (async () => {
-              const file = (e.target as HTMLInputElement).files![0]!;
-              if (!file.type.includes('audio')) return;
-              soundsManager?.addFile(
-                await file.arrayBuffer(),
-                file.name.replace(/\.[^.]*$/, '')
-              );
-            })();
-          }}
-        />
-        <button
-          className="mt-8 p-4 bg-slate-50 text-black"
-          onClick={() => {
-            setAppData!({
-              error: {
-                type: 'normal',
-                value: `HERE IS AN EAHGZTYDF7U8>JIRHVGFTYURROR ${Math.random()}`,
-              },
-            });
-          }}
-        >
-          seterror
-        </button>
-        <button
-          className="mt-8 p-4 bg-slate-50 text-black"
-          onClick={() => {
-            setAppData!({
-              mediumModalText: `HERE IS AN EAHGZTYDF7U8>JIRHVGFTYURROR ${Math.random()}`,
-            });
-          }}
-        >
-          setmodalmsg
-        </button>
-      </div>
+      <div className="h-full w-full"></div>
       <div
         id="song-tab-add-button-ping"
         className="absolute bottom-5 right-5 h-20 w-20 bg-slate-700 animate-big-elem-ping rounded"

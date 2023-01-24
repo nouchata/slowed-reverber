@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction } from 'react';
 import { useContext, useEffect, useState } from 'react';
 
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
@@ -5,7 +6,6 @@ import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import { EAppModalState } from '@/utils/interfaces/AppModalState';
 
 import AppModalsCriticalError from '../../AppModalsCriticalError';
-import Player from '../../player/Player';
 import InjectNewFile from '../InjectNewFile';
 import XlModalHeader from '../layout/XlModalHeader';
 import ModalXlLoading from '../ModalXlLoading';
@@ -13,10 +13,10 @@ import InjectFromGiphy from './components/giphy/InjectFromGiphy';
 import SaveVisual from './components/SaveVisual';
 import SourceChoice from './components/SourceChoice';
 
-enum EMakeVideoState {
+enum EAddVisualState {
   CHOICE,
   SOURCE,
-  ENCODE_VIDEO,
+  VALIDATION,
 }
 
 const editStateOffset = [0, -100, -200];
@@ -31,7 +31,9 @@ const editStateBtnAvailability: Array<[boolean, boolean]> = [
   [true, false],
 ];
 
-const AddVisualModal = () => {
+const AddVisualModal = (props: {
+  setPlayerExtraClasses: Dispatch<SetStateAction<string>>;
+}) => {
   const [modalState, setModalState] = useState<{
     state: EAppModalState;
     error?: string;
@@ -42,43 +44,39 @@ const AddVisualModal = () => {
   const [currentInjectionPane, setCurrentInjectionPane] = useState<
     'local' | 'giphy'
   >();
-  const [currentEditState, setCurrentEditState] = useState<EMakeVideoState>(
-    currentSound!.visualSourceData
-      ? EMakeVideoState.ENCODE_VIDEO
-      : EMakeVideoState.CHOICE
+  const [currentEditState, setCurrentEditState] = useState<EAddVisualState>(
+    EAddVisualState.CHOICE
   );
 
   const [draftVisual, setDraftVisual] = useState<File | Blob>();
   const [aButtonIsPressed, setAButtonIsPressed] = useState<boolean>(false);
 
   useEffect(() => {
-    /* proceeds to check if we already have a song loaded in the memory
-     * and prevents the soundsmanager to reinject it between related
-     * pages (e.g. going from view to editSong) */
-    const lastHistoryEntry = oldRoutes.length
-      ? oldRoutes[oldRoutes.length - 1]
-      : undefined;
-    const uselessToResetSong =
-      lastHistoryEntry &&
-      lastHistoryEntry.pathname === '/app/songs' &&
-      lastHistoryEntry.query.md;
     /* query checks */
-    if (!router.query.s && !router.query.t) {
+    if (!router.query.s) {
       setModalState({
         state: EAppModalState.ERROR,
         error: 'No song id was given',
       });
       return;
     }
-    /* try to load the song */
-    if (!uselessToResetSong)
+    /* proceeds to check if we already have a song loaded in the memory
+     * and prevents the soundsmanager to reinject it between related
+     * pages (e.g. going from view to editSong) */
+    const uselessToResetSong =
+      currentSound?.soundInfoKey !== undefined &&
+      currentSound.soundInfoKey === Number(router.query.s);
+    /* try to load the song if it isn't */
+    if (uselessToResetSong)
+      setModalState({
+        state: EAppModalState.SUCCESS,
+      });
+    else {
+      soundsManager?.resetCurrentSound();
       soundsManager
-        ?.injectInCurrentSong(
-          router.query.s ? 'sounds-info' : 'sounds-temp-info',
-          Number(router.query.s || router.query.t),
-          true,
-          { visualSourceData: true }
-        )
+        ?.injectInCurrentSong('sounds-info', Number(router.query.s), true, {
+          visualSourceData: true,
+        })
         .then(() => {
           setModalState({
             state: EAppModalState.SUCCESS,
@@ -90,7 +88,15 @@ const AddVisualModal = () => {
             error: reason.message,
           });
         });
+    }
   }, []);
+  /* used to fade the player on the first pane */
+  useEffect(() => {
+    if (currentEditState !== EAddVisualState.CHOICE)
+      props.setPlayerExtraClasses('');
+    else props.setPlayerExtraClasses('opacity-20 hover:opacity-60');
+  }, [currentEditState]);
+
   if (modalState.state === EAppModalState.LOADING) return <ModalXlLoading />;
   if (modalState.state === EAppModalState.ERROR)
     return <AppModalsCriticalError error={modalState.error || ''} />;
@@ -112,14 +118,14 @@ const AddVisualModal = () => {
            * won't be edited */
           nextBtnCallback={undefined}
           previousBtnCallback={async () => {
-            setCurrentEditState(EMakeVideoState.CHOICE);
+            setCurrentEditState(EAddVisualState.CHOICE);
             setDraftVisual(undefined);
             return false;
           }}
           setPaneState={setCurrentEditState}
           buttonAvailability={editStateBtnAvailability[currentEditState]!}
           title={
-            currentEditState === EMakeVideoState.SOURCE && currentInjectionPane
+            currentEditState === EAddVisualState.SOURCE && currentInjectionPane
               ? injectionTitle[currentInjectionPane]
               : editStateTitle[currentEditState]!
           }
@@ -134,10 +140,10 @@ const AddVisualModal = () => {
         >
           <SourceChoice
             className="box-border flex-[0_0_100%] overflow-auto"
-            isActive={currentEditState === EMakeVideoState.CHOICE}
+            isActive={currentEditState === EAddVisualState.CHOICE}
             choiceSetterCallback={(choice) => {
               setCurrentInjectionPane(choice);
-              setCurrentEditState(EMakeVideoState.SOURCE);
+              setCurrentEditState(EAddVisualState.SOURCE);
             }}
           />
           <div
@@ -148,12 +154,12 @@ const AddVisualModal = () => {
               <InjectNewFile
                 className="w-full h-full overflow-auto"
                 key={currentEditState}
-                isActive={currentEditState === EMakeVideoState.SOURCE}
+                isActive={currentEditState === EAddVisualState.SOURCE}
                 processCallback={async (file) => {
                   setDraftVisual(file);
                 }}
                 successCallback={() =>
-                  setCurrentEditState(EMakeVideoState.ENCODE_VIDEO)
+                  setCurrentEditState(EAddVisualState.VALIDATION)
                 }
                 fileTypes={['image', 'video']}
               />
@@ -166,16 +172,16 @@ const AddVisualModal = () => {
                   setDraftVisual(file);
                 }}
                 successCallback={() =>
-                  setCurrentEditState(EMakeVideoState.ENCODE_VIDEO)
+                  setCurrentEditState(EAddVisualState.VALIDATION)
                 }
-                isActive={currentEditState === EMakeVideoState.SOURCE}
+                isActive={currentEditState === EAddVisualState.SOURCE}
               />
             )}
             {!currentInjectionPane && <ModalXlLoading />}
           </div>
           <SaveVisual
             className="box-border flex-[0_0_100%] overflow-auto"
-            isActive={currentEditState === EMakeVideoState.ENCODE_VIDEO}
+            isActive={currentEditState === EAddVisualState.VALIDATION}
             draftData={draftVisual}
             successCallback={() => {
               if (oldRoutes.length) router.back();
@@ -184,11 +190,6 @@ const AddVisualModal = () => {
           />
         </div>
       </div>
-      <Player
-        className={`absolute bottom-5 w-[90%] left-[5%] h-12 bg-app-modal-xl-lighter drop-shadow-lg transition-opacity ${
-          !currentEditState ? 'opacity-20 hover:opacity-60' : ''
-        } z-10`}
-      />
     </div>
   );
 };

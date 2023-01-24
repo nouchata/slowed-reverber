@@ -5,7 +5,6 @@ import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import { EAppModalState } from '@/utils/interfaces/AppModalState';
 
 import AppModalsCriticalError from '../../AppModalsCriticalError';
-import Player from '../../player/Player';
 import InjectNewFile from '../InjectNewFile';
 import XlModalHeader from '../layout/XlModalHeader';
 import ModalXlLoading from '../ModalXlLoading';
@@ -42,28 +41,21 @@ const AddSongModal = () => {
   const [nextBtnCallback, setNextBtnCallback] =
     useState<() => Promise<boolean>>();
   const [aButtonIsPressed, setAButtonIsPressed] = useState<boolean>(false);
-  const { isCurrentSoundReady, soundsManager } =
+  const { isCurrentSoundReady, currentSound, soundsManager } =
     useContext(SoundsManagerContext);
-  const { router, oldRoutes } = useContext(AppDataContext).appData!;
+  const { router } = useContext(AppDataContext).appData!;
 
   useEffect(() => {
+    /* checks if it's add mode */
     if (router.query.md === 'addSong') {
+      /* reset to allow a new entry */
+      soundsManager?.resetCurrentSound();
       setModalState({ state: EAppModalState.SUCCESS });
       return;
     }
-    /* skips the first pane if we're in edit mode */
+    /* skips the first pane since we're in edit mode */
     setCurrentEditState(ECurrentEditState.EDIT_STRINGS);
-    /* proceeds to check if we already have a song loaded in the memory
-     * and prevents the soundsmanager to reinject it between related
-     * pages (e.g. going from view to editSong) */
-    const lastHistoryEntry = oldRoutes.length
-      ? oldRoutes[oldRoutes.length - 1]
-      : undefined;
-    const uselessToResetSong =
-      lastHistoryEntry &&
-      lastHistoryEntry.pathname === '/app/songs' &&
-      lastHistoryEntry.query.md;
-    /* query checks */
+    /* edit mode query checks */
     if (!router.query.s && !router.query.t) {
       setModalState({
         state: EAppModalState.ERROR,
@@ -71,8 +63,19 @@ const AddSongModal = () => {
       });
       return;
     }
+    /* proceeds to check if we already have a song loaded in the memory
+     * and prevents the soundsmanager to reinject it between related
+     * pages (e.g. going from view to editSong) */
+    const uselessToResetSong =
+      currentSound?.soundInfoKey !== undefined &&
+      currentSound.soundInfoKey === Number(router.query.s || router.query.t);
     /* try to load the song */
-    if (!uselessToResetSong)
+    if (uselessToResetSong)
+      setModalState({
+        state: EAppModalState.SUCCESS,
+      });
+    else {
+      soundsManager?.resetCurrentSound();
       soundsManager
         ?.injectInCurrentSong(
           router.query.s ? 'sounds-info' : 'sounds-temp-info',
@@ -91,6 +94,7 @@ const AddSongModal = () => {
             error: reason.message,
           });
         });
+    }
   }, []);
   if (modalState.state === EAppModalState.LOADING) return <ModalXlLoading />;
   if (modalState.state === EAppModalState.ERROR)
@@ -133,7 +137,8 @@ const AddSongModal = () => {
               await soundsManager!.addFile(
                 await file.arrayBuffer(),
                 /* removes the extension */
-                file.name.replace(/\.[^.]*$/, '')
+                file.name.replace(/\.[^.]*$/, ''),
+                file.type
               );
             }}
             isActive={currentEditState === ECurrentEditState.INPUT_SONG}
@@ -163,13 +168,6 @@ const AddSongModal = () => {
           />
         </div>
       </div>
-      <Player
-        style={{
-          /* used to show the player by disable the transform property */
-          transform: currentEditState ? 'none' : undefined,
-        }}
-        className="absolute bottom-5 w-[90%] left-[5%] h-12 bg-app-modal-xl-lighter drop-shadow-lg translate-y-32 transition-transform z-10"
-      />
     </div>
   );
 };

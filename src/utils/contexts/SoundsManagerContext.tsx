@@ -1,12 +1,11 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import type { ISoundsManagerCurrentSound } from '../interfaces/SoundsManagerInterfaces';
+import { EEncoderState } from '../interfaces/SoundsManagerInterfaces';
 import SoundsManager from '../SoundModule/SoundsManager';
 import { AppDataContext } from './AppDataContext';
 
 type ISoundsManagerContextValues = {
-  /* if an error occurs, it will be filled here */
-  soundsManagerError: string;
   /* is the sounds manager well init */
   isSoundsManagerInit: boolean;
   /* is the sound ready to be used w/ the player */
@@ -17,6 +16,8 @@ type ISoundsManagerContextValues = {
   soundsManager: SoundsManager;
   /* the current sound instance */
   currentSound: ISoundsManagerCurrentSound;
+  /* encoder state */
+  encoderState: EEncoderState;
 };
 
 const SoundsManagerContext = createContext<
@@ -26,6 +27,9 @@ const SoundsManagerContext = createContext<
 const SoundsManagerProvider = (props: { children: any }) => {
   const [isSoundsManagerInit, setIsSoundsManagerInit] = useState(false);
   const [isCurrentSoundReady, setIsCurrentSoundReady] = useState(false);
+  const [encoderState, setEncoderState] = useState<EEncoderState>(
+    EEncoderState.LOADING
+  );
   const [playState, setPlayState] = useState(false);
   const [currentSound, setCurrentSound] = useState<ISoundsManagerCurrentSound>(
     {}
@@ -41,6 +45,7 @@ const SoundsManagerProvider = (props: { children: any }) => {
       setSoundReadyCallback: setIsCurrentSoundReady,
       setPlayStateCallback: setPlayState,
       setAppDataCallback: setAppData,
+      setEncoderStateCallback: setEncoderState,
       appData,
     });
     sm.resetCurrentSound();
@@ -62,6 +67,7 @@ const SoundsManagerProvider = (props: { children: any }) => {
         playState,
         soundsManager,
         currentSound,
+        encoderState,
       }}
     >
       {props.children}
