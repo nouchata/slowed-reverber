@@ -78,9 +78,10 @@ const PlayerProgressState = (props: IStylePropsInterface) => {
     };
   }, []);
   useEffect(() => {
-    playerProgressRef.current!.boundingClientRect =
-      playerProgressRef.current!.getBoundingClientRect();
-  }, [windowSize.width]);
+    if (playerProgressRef.current)
+      playerProgressRef.current.boundingClientRect =
+        playerProgressRef.current.getBoundingClientRect();
+  }, [windowSize, playerProgressRef.current]);
   /* running the idle updating bar loop and defining the setNewPercentage here since they're
    * state linked */
   useEffect(() => {

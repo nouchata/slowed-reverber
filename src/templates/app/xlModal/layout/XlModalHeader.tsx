@@ -50,8 +50,10 @@ const XlModalHeader = (props: XlModalHeaderProps) => {
           Previous
         </span>
       </button>
-      <h2 className="flex-1 flex justify-center items-center text-lg font-bold text-white">
-        {props.title}
+      <h2 className="flex-1 flex items-center text-lg font-bold text-white overflow-hidden">
+        <span className="overflow-hidden text-ellipsis whitespace-nowrap text-center w-full">
+          {props.title}
+        </span>
       </h2>
       <button
         className={`flex-[0_0_20%] text-white text-xs overflow-hidden ${

@@ -45,14 +45,13 @@ const AppModals = () => {
 
       /* using display instead of dom removal allows to control the animation when the user is navigating */
       modalContainerTl.current
-        .set(modalContainerRef.current, { css: { display: 'block' } })
+        .set(modalContainerRef.current, { css: { visibility: 'visible' } })
         .to(modalContainerRef.current, {
           backgroundColor: 'rgba(0,0,0,0.5)',
           duration: 0.3,
         });
 
       modalXlTl.current
-        .set(modalXlRef.current, { css: { display: 'block' } })
         .from(modalXlRef.current, { y: '100%', duration: 0.3 }, 0)
         .to(
           modalXlRef.current,
@@ -130,6 +129,15 @@ const AppModals = () => {
       ) {
         setXLDynamicImport(
           dynamic(() => import('./xlModal/addSong/AddSongModal'), {
+            suspense: true,
+          })
+        );
+      } else if (
+        router.pathname === '/app/songs' &&
+        router.query.md === 'viewSong'
+      ) {
+        setXLDynamicImport(
+          dynamic(() => import('./xlModal/viewSong/ViewSongModal'), {
             suspense: true,
           })
         );
@@ -233,12 +241,12 @@ const AppModals = () => {
       )}
       <div
         id="app-display-xl-container"
-        className={`absolute hidden w-full h-full bg-[rgba(0,0,0,0)] z-30`}
+        className={`absolute invisible w-full h-full bg-[rgba(0,0,0,0)] z-30`}
         ref={modalContainerRef}
       >
         <div
           id="app-display-xl-modal"
-          className="absolute hidden opacity-0 bottom-0 w-full h-[90%] rounded-t-lg bg-app-modal-xl-background overflow-visible"
+          className="absolute opacity-0 bottom-0 w-full h-[90%] rounded-t-lg bg-app-modal-xl-background overflow-visible"
           ref={modalXlRef}
         >
           <div

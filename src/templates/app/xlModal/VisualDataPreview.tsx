@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 
 const VisualDataPreview = (
-  props: IStylePropsInterface & { blob?: Blob; isActive: boolean }
+  props: IStylePropsInterface & { blob?: Blob; notRounded?: boolean }
 ) => {
   const blobUrlRef = useMemo(() => {
     if (props.blob) return URL.createObjectURL(props.blob);
@@ -14,7 +14,9 @@ const VisualDataPreview = (
       {props.blob?.type.includes('image') && (
         <img
           alt="Visual source preview"
-          className="w-full h-full object-cover rounded"
+          className={`w-full h-full object-cover ${
+            props.notRounded ? '' : 'rounded'
+          }`}
           src={blobUrlRef}
         />
       )}
@@ -25,7 +27,9 @@ const VisualDataPreview = (
           muted={true}
           autoPlay={true}
           loop={true}
-          className="w-full h-full object-cover rounded"
+          className={`w-full h-full object-cover ${
+            props.notRounded ? '' : 'rounded'
+          }`}
           src={blobUrlRef}
         />
       )}

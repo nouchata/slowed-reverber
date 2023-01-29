@@ -7,7 +7,6 @@ import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { IAppModalPaneProps } from '@/utils/interfaces/AppModalState';
 import type { IBasicPropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 import { EExportChoices } from '@/utils/interfaces/ExportChoicesEnum';
-import { EEncoderState } from '@/utils/interfaces/SoundsManagerInterfaces';
 import encoderExtensions from '@/utils/SoundModule/encoderExtensions';
 
 function filenameFormatter(author?: string, name?: string, extension?: string) {
@@ -30,8 +29,14 @@ const ExportExecution = (
       exportChoice: EExportChoices;
     }
 ) => {
-  const [media, setMedia] = useState<{ blob: Blob; link: string }>();
-  const consoleRef = useRef<HTMLDivElement & { consoleRunning: boolean }>(null);
+  const [media, setMedia] = useState<{
+    blob: Blob;
+    link: string;
+    name: string;
+  }>();
+  const consoleRef = useRef<
+    HTMLDivElement & { consoleRunning: boolean; consoleError: boolean }
+  >(null);
   const { soundsManager, isSoundsManagerInit, encoderState, currentSound } =
     useContext(SoundsManagerContext);
   const { setAppData } = useContext(AppDataContext);
@@ -78,37 +83,60 @@ const ExportExecution = (
         consoleRef.current &&
         props.isActive &&
         isSoundsManagerInit &&
-        encoderState === EEncoderState.LOADED &&
         props.exportChoice !== EExportChoices.NO_CHOICE &&
         !consoleRef.current.consoleRunning
       ) {
-        /* no re-run flag */
+        /* no re-run & error flags */
         consoleRef.current.consoleRunning = true;
+        consoleRef.current.consoleError = false;
         /* rendering a raw audio file w/ the filters */
         const rawSong = await soundsManager!
           .exportSong(setProgressVars)
-          .catch((reason) =>
+          .catch((reason) => {
             setProgressVars({
               consoleEntry: { type: 'error', entry: reason.message },
-            })
-          );
+            });
+            if (consoleRef.current) consoleRef.current.consoleError = true;
+          });
         /* encoder part if needed */
-        if (rawSong && props.exportChoice !== EExportChoices.TO_RAW_AUDIO) {
+        if (
+          rawSong &&
+          props.exportChoice !== EExportChoices.TO_RAW_AUDIO &&
+          !consoleRef.current.consoleError
+        ) {
           const blob = await soundsManager!
             .encoderUtils(
               await rawSong.arrayBuffer(),
               props.exportChoice,
               setProgressVars
             )
-            .catch((reason) =>
+            .catch((reason) => {
               setProgressVars({
                 consoleEntry: { type: 'error', entry: reason.message },
-              })
-            );
-          if (blob) setMedia({ blob, link: URL.createObjectURL(blob) });
+              });
+              if (consoleRef.current) consoleRef.current.consoleError = true;
+            });
+          if (blob)
+            setMedia({
+              blob,
+              link: URL.createObjectURL(blob),
+              name: filenameFormatter(
+                currentSound?.soundInfoData?.author,
+                currentSound?.soundInfoData?.name,
+                encoderExtensions[props.exportChoice]
+              ),
+            });
         }
         if (rawSong && props.exportChoice === EExportChoices.TO_RAW_AUDIO)
-          setMedia({ blob: rawSong, link: URL.createObjectURL(rawSong) });
+          setMedia({
+            blob: rawSong,
+            link: URL.createObjectURL(rawSong),
+            name: filenameFormatter(
+              currentSound?.soundInfoData?.author,
+              currentSound?.soundInfoData?.name,
+              encoderExtensions[props.exportChoice]
+            ),
+          });
       }
     })();
   }, [
@@ -128,16 +156,19 @@ const ExportExecution = (
         fillColor="22252A"
       />
       <h3 className="font-extrabold text-lg my-3">
-        {progressVars.stepCount <
-          (props.exportChoice === EExportChoices.TO_RAW_AUDIO ? 1 : 2) &&
+        {!consoleRef.current?.consoleError &&
+          progressVars.stepCount <
+            (props.exportChoice === EExportChoices.TO_RAW_AUDIO ? 1 : 2) &&
           `Step ${progressVars.stepCount + 1}/${
             props.exportChoice === EExportChoices.TO_RAW_AUDIO ? 1 : 2
           } - ${exportSteps[progressVars.stepCount]}`}
-        {progressVars.stepCount >=
-          (props.exportChoice === EExportChoices.TO_RAW_AUDIO ? 1 : 2) &&
+        {!consoleRef.current?.consoleError &&
+          progressVars.stepCount >=
+            (props.exportChoice === EExportChoices.TO_RAW_AUDIO ? 1 : 2) &&
           'Done'}
+        {consoleRef.current?.consoleError && 'An error occured'}
       </h3>
-      {!media && (
+      {!media && !consoleRef.current?.consoleError && (
         <div
           id="export-progress"
           className="w-11/12 flex-[0_0_20px] my-3 border-white border-2 rounded"
@@ -152,21 +183,33 @@ const ExportExecution = (
         </div>
       )}
       <div
-        className={`box-border w-11/12 overflow-hidden flex-[0_0_400px] p-2 bg-slate-900 shadow-inner rounded transition-colors`}
+        className={`box-border w-11/12 overflow-hidden flex-[0_0_400px] p-2 bg-slate-900 shadow-md rounded transition-colors`}
       >
         <div
           ref={consoleRef}
-          className={`relative w-full h-full overflow-hidden font-mono text-sm break-words`}
+          className={`relative w-full h-full overflow-hidden font-mono text-sm break-words ${
+            consoleRef.current?.consoleError ? 'overflow-y-scroll' : ''
+          }`}
         >
           {!media && (
             <>
-              <span></span>
+              <span className="select-text"></span>
               <span className="animate-inline-blink">_</span>
             </>
           )}
           {media && (
-            <div className="absolute top-0 left-0 w-full h-full flex flex-col gap-2">
-              <div className="relative flex-[0_0_80%] flex justify-center items-center">
+            <div className="absolute top-0 left-0 w-full h-full flex flex-col gap-2 overflow-hidden">
+              <h4 className="flex-[0_0_50px] box-border px-2 flex items-center font-bold text-lg font-sans">
+                <img
+                  alt="Disc"
+                  className="h-8 pr-3"
+                  src="data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'%3E%3C/circle%3E%3Ccircle cx='12' cy='12' r='3'%3E%3C/circle%3E%3C/svg%3E"
+                />
+                <span className="whitespace-nowrap overflow-hidden text-ellipsis select-text">
+                  {media.name}
+                </span>
+              </h4>
+              <div className="relative flex-1 flex justify-center items-center bg-black">
                 {media.blob.type.includes('audio') && (
                   <audio controls={true} src={media.link} />
                 )}
@@ -178,30 +221,22 @@ const ExportExecution = (
                   />
                 )}
               </div>
-              <div className="flex-1 flex gap-2">
+              <div className="flex-[0_0_50px] flex gap-2">
                 <a
                   className="flex-1 flex justify-center items-center cursor-pointer no-underline"
                   href={media.link}
-                  download={filenameFormatter(
-                    currentSound?.soundInfoData?.author,
-                    currentSound?.soundInfoData?.name,
-                    encoderExtensions[props.exportChoice]
-                  )}
+                  download={media.name}
                 >
                   <img
-                    className="h-10"
+                    className="h-8"
                     alt="Download"
-                    src={`data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'%3E%3C/path%3E%3Cpolyline points='7 10 12 15 17 10'%3E%3C/polyline%3E%3Cline x1='12' y1='15' x2='12' y2='3'%3E%3C/line%3E%3C/svg%3E`}
+                    src={`data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'%3E%3C/path%3E%3Cpolyline points='7 10 12 15 17 10'%3E%3C/polyline%3E%3Cline x1='12' y1='15' x2='12' y2='3'%3E%3C/line%3E%3C/svg%3E`}
                   />
                 </a>
                 <button
                   className="flex-1 flex justify-center items-center"
                   onClick={() => {
-                    const name = filenameFormatter(
-                      currentSound?.soundInfoData?.author,
-                      currentSound?.soundInfoData?.name,
-                      encoderExtensions[props.exportChoice]
-                    );
+                    const { name } = media;
                     /* data format */
                     const data = {
                       files: [
@@ -226,9 +261,9 @@ const ExportExecution = (
                   }}
                 >
                   <img
-                    className="h-10"
+                    className="h-8"
                     alt="Share"
-                    src={`data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='18' cy='5' r='3'%3E%3C/circle%3E%3Ccircle cx='6' cy='12' r='3'%3E%3C/circle%3E%3Ccircle cx='18' cy='19' r='3'%3E%3C/circle%3E%3Cline x1='8.59' y1='13.51' x2='15.42' y2='17.49'%3E%3C/line%3E%3Cline x1='15.41' y1='6.51' x2='8.59' y2='10.49'%3E%3C/line%3E%3C/svg%3E`}
+                    src={`data:image/svg+xml,%0A%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='18' cy='5' r='3'%3E%3C/circle%3E%3Ccircle cx='6' cy='12' r='3'%3E%3C/circle%3E%3Ccircle cx='18' cy='19' r='3'%3E%3C/circle%3E%3Cline x1='8.59' y1='13.51' x2='15.42' y2='17.49'%3E%3C/line%3E%3Cline x1='15.41' y1='6.51' x2='8.59' y2='10.49'%3E%3C/line%3E%3C/svg%3E`}
                   />
                 </button>
               </div>

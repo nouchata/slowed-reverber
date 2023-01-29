@@ -31,7 +31,6 @@ const SaveVisual = (
             ? 'bg-transparent'
             : 'bg-amber-300/50'
         }`}
-        isActive={props.isActive}
         blob={props.draftData}
       />
       <button

@@ -99,12 +99,16 @@ export default class SoundsManager {
 
     /* ENCODER INIT */
     try {
-      this.encoder = createFFmpeg({
-        corePath:
-          process.env.NODE_ENV !== 'production'
-            ? new URL('assets/js/ffmpeg-core.js', document.location.origin).href
-            : undefined,
-      });
+      this.encoder = createFFmpeg(
+        process.env.NODE_ENV !== 'production'
+          ? {
+              corePath: new URL(
+                'assets/js/ffmpeg-core.js',
+                document.location.origin
+              ).href,
+            }
+          : undefined
+      );
       this.encoder
         .load()
         .then(() =>
@@ -288,7 +292,8 @@ export default class SoundsManager {
 
   /* progressbar interaction */
   public updateAudioPosition(percentage: number) {
-    if (percentage === 100) this.audioSourceInput!.onended!({} as any);
+    if (percentage === 100 && this.audioSourceInput?.onended)
+      this.audioSourceInput.onended({} as any);
     else {
       /* the received percentage is divided by 100 bc it needs to be a factor */
       const newPosition = (percentage / 100) * this.audioBufferInput!.duration;
@@ -661,6 +666,7 @@ export default class SoundsManager {
 
   public resetCurrentSound() {
     if (!this.isFullyInit) return;
+    this.currentSound = {};
     this.afterInitData.setCurrentSoundCallback({});
     this.afterInitData.setSoundReadyCallback(false);
     this.audioBufferInput = undefined;

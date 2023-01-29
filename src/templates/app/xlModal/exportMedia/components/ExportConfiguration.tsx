@@ -36,7 +36,6 @@ const ExportConfiguration = (
       <div className="p-3 w-full flex-[0_0_auto] flex gap-5 justify-center">
         <VisualDataPreview
           className="flex-[0_0_auto] w-[10vh] h-[10vh] min-h-[70px] min-w-[70px] max-h-[120px] max-w-[120px] outline-dashed outline-2 outline-offset-8 mr-3 rounded"
-          isActive={props.isActive}
           blob={visualBlob}
         />
         <div className="flex-initial h-full overflow-hidden flex flex-col justify-center">

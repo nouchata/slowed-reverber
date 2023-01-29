@@ -76,18 +76,23 @@ const ExportMediaModal = () => {
       if (errorFlag) return;
       /* the requested media could be just a song hence the visual asset is sideloaded
        * to prevent throwing errors if it isn't available */
-      soundsManager
-        ?.injectInCurrentSong('sounds-info', 0, false, {
-          soundInfoData: true,
-          soundInfoKey: true,
-          soundInfoStore: true,
-          soundSourceData: true,
-        })
-        .catch(() => undefined)
-        .finally(() => {
-          setModalState({
-            state: EAppModalState.SUCCESS,
+      if (!currentSound?.visualSourceData?.data)
+        soundsManager
+          ?.injectInCurrentSong('sounds-info', 0, false, {
+            soundInfoData: true,
+            soundInfoKey: true,
+            soundInfoStore: true,
+            soundSourceData: true,
+          })
+          .catch(() => undefined)
+          .finally(() => {
+            setModalState({
+              state: EAppModalState.SUCCESS,
+            });
           });
+      else
+        setModalState({
+          state: EAppModalState.SUCCESS,
         });
     })();
   }, []);
