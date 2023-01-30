@@ -47,25 +47,31 @@ const ViewSongModal = () => {
   const processedPercentage = useMemo(() => {
     return {
       speed: currentSound?.soundInfoData?.speedValue
-        ? SoundsManager.valueConverter(
-            'speed',
-            currentSound.soundInfoData.speedValue,
-            false
-          )
+        ? Math.round(
+            SoundsManager.valueConverter(
+              'speed',
+              currentSound.soundInfoData.speedValue,
+              false
+            ) * 10
+          ) / 10
         : undefined,
       reverb: currentSound?.soundInfoData?.reverbEffectValue
-        ? SoundsManager.valueConverter(
-            'reverb',
-            currentSound.soundInfoData.reverbEffectValue,
-            false
-          )
+        ? Math.round(
+            SoundsManager.valueConverter(
+              'reverb',
+              currentSound.soundInfoData.reverbEffectValue,
+              false
+            ) * 10
+          ) / 10
         : undefined,
       distance: currentSound?.soundInfoData?.lowKeyEffectValue
-        ? SoundsManager.valueConverter(
-            'distance',
-            currentSound.soundInfoData.lowKeyEffectValue,
-            false
-          )
+        ? Math.round(
+            SoundsManager.valueConverter(
+              'distance',
+              currentSound.soundInfoData.lowKeyEffectValue,
+              false
+            ) * 10
+          ) / 10
         : undefined,
     };
   }, [currentSound?.soundInfoData]);
@@ -218,7 +224,7 @@ const ViewSongModal = () => {
                   className="flex-[1_0_33%] h-20 overflow-hidden"
                   Svg={SpeedSVG}
                   name="Speed"
-                  percentage={processedPercentage.speed ?? 0}
+                  percentage={processedPercentage.speed ?? 50}
                   basePercentage={50}
                   breakpoints={valuesBreakpoints.speed}
                 />
@@ -226,14 +232,14 @@ const ViewSongModal = () => {
                   className="flex-[1_0_33%] h-20 overflow-hidden"
                   Svg={ReverbSVG}
                   name="Reverb"
-                  percentage={processedPercentage.reverb ?? 50}
+                  percentage={processedPercentage.reverb || 0}
                   breakpoints={valuesBreakpoints.reverb}
                 />
                 <ValueDisplayer
                   className="flex-[1_0_33%] narrow-width:flex-[0_0_100%] narrow-width:mt-3 h-20 overflow-hidden"
                   Svg={LowpassSVG}
                   name="Distance"
-                  percentage={processedPercentage.distance ?? 50}
+                  percentage={processedPercentage.distance || 0}
                   breakpoints={valuesBreakpoints.distance}
                 />
               </div>
