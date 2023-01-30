@@ -52,43 +52,47 @@ const AddVisualModal = (props: {
   const [aButtonIsPressed, setAButtonIsPressed] = useState<boolean>(false);
 
   useEffect(() => {
+    let errorFlag = false;
     /* query checks */
     if (!router.query.s) {
       setModalState({
         state: EAppModalState.ERROR,
         error: 'No song id was given',
       });
-      return;
+      errorFlag = true;
     }
-    /* proceeds to check if we already have a song loaded in the memory
-     * and prevents the soundsmanager to reinject it between related
-     * pages (e.g. going from view to editSong) */
-    const uselessToResetSong =
-      currentSound?.soundInfoKey !== undefined &&
-      currentSound.soundInfoKey === Number(router.query.s);
-    /* try to load the song if it isn't */
-    if (uselessToResetSong)
-      setModalState({
-        state: EAppModalState.SUCCESS,
-      });
-    else {
-      soundsManager?.resetCurrentSound();
-      soundsManager
-        ?.injectInCurrentSong('sounds-info', Number(router.query.s), true, {
-          visualSourceData: true,
-        })
-        .then(() => {
-          setModalState({
-            state: EAppModalState.SUCCESS,
-          });
-        })
-        .catch((reason) => {
-          setModalState({
-            state: EAppModalState.ERROR,
-            error: reason.message,
-          });
+    if (!errorFlag) {
+      /* proceeds to check if we already have a song loaded in the memory
+       * and prevents the soundsmanager to reinject it between related
+       * pages (e.g. going from view to editSong) */
+      const uselessToResetSong =
+        currentSound?.soundInfoKey !== undefined &&
+        currentSound.soundInfoKey === Number(router.query.s);
+      /* try to load the song if it isn't */
+      if (uselessToResetSong)
+        setModalState({
+          state: EAppModalState.SUCCESS,
         });
+      else {
+        soundsManager?.resetCurrentSound();
+        soundsManager
+          ?.injectInCurrentSong('sounds-info', Number(router.query.s), true, {
+            visualSourceData: true,
+          })
+          .then(() => {
+            setModalState({
+              state: EAppModalState.SUCCESS,
+            });
+          })
+          .catch((reason) => {
+            setModalState({
+              state: EAppModalState.ERROR,
+              error: reason.message,
+            });
+          });
+      }
     }
+    return () => props.setPlayerExtraClasses('');
   }, []);
   /* used to fade the player on the first pane */
   useEffect(() => {

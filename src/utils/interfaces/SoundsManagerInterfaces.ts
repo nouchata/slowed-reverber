@@ -4,8 +4,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { IAppData } from '../contexts/AppDataContext';
 
 export type ISoundsManagerCallbacks = {
-  successCallback: Function;
-  successCallbackArgs: Array<any>;
+  setSoundsManagerStateCallback: Dispatch<SetStateAction<boolean>>;
   setCurrentSoundCallback: Dispatch<SetStateAction<ISoundsManagerCurrentSound>>;
   setSoundReadyCallback: Dispatch<SetStateAction<boolean>>;
   setPlayStateCallback: Dispatch<SetStateAction<boolean>>;

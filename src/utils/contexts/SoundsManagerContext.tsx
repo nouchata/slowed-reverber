@@ -39,8 +39,7 @@ const SoundsManagerProvider = (props: { children: any }) => {
   /* soundsManager cleanup */
   useEffect(() => {
     const sm = new SoundsManager({
-      successCallback: setIsSoundsManagerInit,
-      successCallbackArgs: [true],
+      setSoundsManagerStateCallback: setIsSoundsManagerInit,
       setCurrentSoundCallback: setCurrentSound,
       setSoundReadyCallback: setIsCurrentSoundReady,
       setPlayStateCallback: setPlayState,

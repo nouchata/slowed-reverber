@@ -8,6 +8,7 @@ import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import type { IAppModalPaneProps } from '@/utils/interfaces/AppModalState';
 import type { IStylePropsInterface } from '@/utils/interfaces/BasicPropsInterface';
 import SoundsManager from '@/utils/SoundModule/SoundsManager';
+import valuesBreakpoints from '@/utils/valuesBreakpoints';
 
 import TweakValuesSlider from './tweakValues/TweakValuesSlider';
 
@@ -94,15 +95,7 @@ const TweakValues = (props: IStylePropsInterface & IAppModalPaneProps) => {
               false
             )}
             arbitraryValue={arbitraryValue}
-            breakpoints={{
-              0: 'Cursed',
-              30: 'Slowed down',
-              '37.5': 'Perfect slowing',
-              45: 'A bit under',
-              50: 'Normal',
-              75: 'Sped up',
-              100: 'Nightcore',
-            }}
+            breakpoints={valuesBreakpoints.speed}
             percentageCallback={(percentage) => {
               soundsManager
                 ?.tweakDataCurrentSound('speed', percentage)
@@ -136,14 +129,7 @@ const TweakValues = (props: IStylePropsInterface & IAppModalPaneProps) => {
               false
             )}
             arbitraryValue={arbitraryValue}
-            breakpoints={{
-              0: 'Normal',
-              20: 'A bit wet',
-              40: 'A bit more wet',
-              60: 'Wet',
-              80: 'Very wet',
-              100: 'Soaked',
-            }}
+            breakpoints={valuesBreakpoints.reverb}
             percentageCallback={(percentage) => {
               soundsManager
                 ?.tweakDataCurrentSound('reverb', percentage)
@@ -177,14 +163,7 @@ const TweakValues = (props: IStylePropsInterface & IAppModalPaneProps) => {
               false
             )}
             arbitraryValue={arbitraryValue}
-            breakpoints={{
-              0: 'Near you',
-              50: 'A little bit muffled',
-              75: 'Muffled',
-              85: 'Under your pillow',
-              95: 'Next room',
-              100: 'Next flat',
-            }}
+            breakpoints={valuesBreakpoints.distance}
             percentageCallback={(percentage) => {
               soundsManager
                 ?.tweakDataCurrentSound('distance', percentage)

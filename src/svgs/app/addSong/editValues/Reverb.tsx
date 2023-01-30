@@ -20,13 +20,19 @@ const ReverbSVG = (props: ITweakValuesSliderSVGProps) => {
       <image
         className="w-full h-full"
         xmlnsXlink="http://www.w3.org/1999/xlink"
-        xlinkHref="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='2.95 1.65 18.2 21.4' fill='currentColor' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z'%3E%3C/path%3E%3C/svg%3E"
+        xlinkHref={`data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='2.95 1.65 18.2 21.4' fill='%23${
+          props.color || '000000'
+        }' stroke='%23${
+          props.color || '000000'
+        }' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z'%3E%3C/path%3E%3C/svg%3E`}
         mask="url(#svg-droplet-mask)"
       ></image>
       <image
         className="w-full h-full"
         xmlnsXlink="http://www.w3.org/1999/xlink"
-        xlinkHref="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='2.95 1.65 18.2 21.4' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z'%3E%3C/path%3E%3C/svg%3E"
+        xlinkHref={`data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='2.95 1.65 18.2 21.4' fill='none' stroke='%23${
+          props.color || '000000'
+        }' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z'%3E%3C/path%3E%3C/svg%3E`}
       ></image>
     </svg>
   );

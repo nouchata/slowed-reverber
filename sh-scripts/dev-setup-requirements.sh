@@ -10,6 +10,7 @@ fi;
 # https restrictions) to do mobile test on a local network so we need
 # certificates to run it
 if ! $(ls ./.next-https/certs/localhost.key 1>/dev/null 2>&1); then
+	mkdir ./.next-https/certs/
   openssl req -x509 \
     -out .next-https/certs/localhost.crt \
     -keyout .next-https/certs/localhost.key \

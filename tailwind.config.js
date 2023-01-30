@@ -100,6 +100,7 @@ module.exports = {
       },
       screens: {
         'phone-landscape': { raw: '(max-height: 600px)' },
+        'narrow-width': { raw: '(max-width: 400px)' },
       },
     },
   },

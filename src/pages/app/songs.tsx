@@ -1,12 +1,19 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
 import AppLayout from '@/layouts/AppLayout';
 import { Meta } from '@/layouts/Meta';
+import SongsList from '@/templates/app/songs/SongsList';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import type { NextPageLayoutInterface } from '@/utils/interfaces/NextPageLayoutInterface';
 
 const AppSongs: NextPageLayoutInterface = () => {
   const { router } = useContext(AppDataContext).appData!;
+  /* could be better made i know 😁 */
+  const [songsListKey, setSongsListKey] = useState(0);
+
+  useEffect(() => {
+    if (router.asPath === '/app/songs/') setSongsListKey(Date.now());
+  }, [router]);
   return (
     <>
       <Meta
@@ -16,14 +23,25 @@ const AppSongs: NextPageLayoutInterface = () => {
           router.asPath
         }
       ></Meta>
-      <div className="h-full w-full"></div>
+      <div className="w-full pb-20">
+        <SongsList
+          key={`${songsListKey}t`}
+          className="w-full text-white"
+          store="sounds-temp-info"
+        />
+        <SongsList
+          key={`${songsListKey}s`}
+          className="w-full text-white"
+          store="sounds-info"
+        />
+      </div>
       <div
         id="song-tab-add-button-ping"
-        className="absolute bottom-5 right-5 h-20 w-20 bg-slate-700 animate-big-elem-ping rounded"
+        className="fixed bottom-16 right-5 h-16 w-16 bg-slate-700 animate-big-elem-ping rounded"
       ></div>
       <button
         id="song-tab-add-button"
-        className="absolute bottom-5 right-5 h-20 w-20 text-white bg-app-primary-color rounded flex justify-center items-center box-border p-2"
+        className="fixed bottom-16 right-5 h-16 w-16 text-white bg-app-primary-color rounded flex justify-center items-center box-border p-2"
         onClick={() =>
           router.push(
             { pathname: '/app/songs/', query: { md: 'addSong' } },

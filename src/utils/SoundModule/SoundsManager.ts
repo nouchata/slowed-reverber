@@ -77,8 +77,8 @@ export default class SoundsManager {
 
   constructor(args: ISoundsManagerConstructorArgs) {
     this.afterInitData = {
-      successCallback: args.successCallback || (() => {}),
-      successCallbackArgs: args.successCallbackArgs || [],
+      setSoundsManagerStateCallback:
+        args.setSoundsManagerStateCallback || (() => {}),
       setCurrentSoundCallback: args.setCurrentSoundCallback || (() => {}),
       setSoundReadyCallback: args.setSoundReadyCallback || (() => {}),
       setPlayStateCallback: args.setPlayStateCallback || (() => {}),
@@ -237,9 +237,7 @@ export default class SoundsManager {
 
     /* init done ! */
     this.isFullyInit = true;
-    this.afterInitData.successCallback!(
-      ...this.afterInitData.successCallbackArgs!
-    );
+    this.afterInitData.setSoundsManagerStateCallback(true);
     /* since this init func is asynchronous, we check the flag to see if
      * something asked the manager to be ended while it was executed */
     if (this.needsToBeDestructed) this.freeData();
@@ -250,8 +248,13 @@ export default class SoundsManager {
     this.isFullyInit = false;
     this.songsDb?.close();
     this.audioContext?.close();
+    /* idk if it's that useful since the sm context is sticked with
+     * the app so */
+    // if (process.env.NODE_ENV === 'production')
+    //   this.afterInitData.setSoundsManagerStateCallback(false);
     this.afterInitData.setSoundReadyCallback(false);
     this.afterInitData.setPlayStateCallback(false);
+    this.currentSound = {};
     this.afterInitData.setCurrentSoundCallback({});
   }
 
@@ -421,6 +424,7 @@ export default class SoundsManager {
     tempCurrentSound.soundBufferDuration = this.audioBufferInput.duration;
 
     /* updates currentSound w/ the fresh data */
+    this.currentSound = tempCurrentSound;
     this.afterInitData.setCurrentSoundCallback(tempCurrentSound);
     /* unlocks the player component */
     this.afterInitData.setSoundReadyCallback(true);
@@ -695,6 +699,7 @@ export default class SoundsManager {
       this.currentSound.soundInfoKey
     );
     /* then update current state if it went well */
+    this.currentSound.soundInfoData = soundInfoDataUpdated;
     this.afterInitData.setCurrentSoundCallback({
       ...this.currentSound,
       soundInfoData: soundInfoDataUpdated,
@@ -714,6 +719,21 @@ export default class SoundsManager {
     if (!this.currentSound.soundInfoStore || !this.currentSound.soundInfoKey)
       return;
     const hash = SparkMD5.ArrayBuffer.hash(arrayBuffer);
+    /* remove the old visual asset if it exists */
+    if (
+      this.currentSound.soundInfoData?.blobVisualHash &&
+      (
+        await this.songsDb!.getAllFromIndex(
+          'sounds-info',
+          'by-visual-blob-key',
+          this.currentSound.soundInfoData.blobVisualHash
+        )
+      ).length < 2
+    )
+      await this.songsDb!.delete(
+        'sounds-visual-blob',
+        this.currentSound.soundInfoData.blobVisualHash
+      );
     /* data injection */
     if (!(await this.songsDb!.get('sounds-visual-blob', hash))) {
       await this.songsDb!.add('sounds-visual-blob', {
@@ -722,21 +742,57 @@ export default class SoundsManager {
         hash,
       });
     }
-    /* used for cleaning issues */
-    const oldHash = this.currentSound.soundInfoData?.blobVisualHash;
-    /* hash ref update on the current sound */
+    /* then update current state if it went well */
+    this.currentSound.visualSourceData = { data: arrayBuffer, type, hash };
+    this.afterInitData.setCurrentSoundCallback({
+      ...this.currentSound,
+      visualSourceData: { data: arrayBuffer, type, hash },
+    });
+    /* hash ref update on the current sound in db */
     await this.updateCurrentSound({ blobVisualHash: hash });
+  }
 
-    /* cleaning the visual data if there's no sounds using it */
+  public async deleteCurrentSound() {
+    if (!this.isFullyInit)
+      throw new Error('The database is not (yet) initialized...');
+    /* basic check to prevent bad database assignation */
+    if (!this.currentSound.soundInfoData || !this.currentSound.soundInfoKey)
+      return;
+    /* delete the visual asset if no other songs use it */
     if (
-      oldHash &&
-      !(await this.songsDb!.getFromIndex(
-        'sounds-info',
-        'by-visual-blob-key',
-        oldHash
-      ))
+      this.currentSound.soundInfoData?.blobVisualHash &&
+      (
+        await this.songsDb!.getAllFromIndex(
+          'sounds-info',
+          'by-visual-blob-key',
+          this.currentSound.soundInfoData.blobVisualHash
+        )
+      ).length < 2
     )
-      await this.songsDb!.delete('sounds-visual-blob', oldHash);
+      await this.songsDb!.delete(
+        'sounds-visual-blob',
+        this.currentSound.soundInfoData.blobVisualHash
+      );
+    /* same w/ the audio asset */
+    if (
+      this.currentSound.soundInfoData?.blobAudioHash &&
+      (
+        await this.songsDb!.getAllFromIndex(
+          'sounds-info',
+          'by-audio-blob-key',
+          this.currentSound.soundInfoData.blobAudioHash
+        )
+      ).length < 2
+    )
+      await this.songsDb!.delete(
+        'sounds-source-blob',
+        this.currentSound.soundInfoData.blobAudioHash
+      );
+    /* then the song data */
+    await this.songsDb!.delete('sounds-info', this.currentSound.soundInfoKey);
+    /* finally update the currentsound */
+    this.currentSound = {};
+    this.afterInitData.setCurrentSoundCallback({});
   }
 
   public async tweakDataCurrentSound(
@@ -880,6 +936,27 @@ export default class SoundsManager {
 
   public contextUpdateCurrentAppData(currentAppData: Partial<IAppData>) {
     this.currentAppData = currentAppData;
+  }
+
+  public async getAllFromIndex(
+    storeName: 'sounds-info' | 'sounds-temp-info',
+    index: 'by-date' | 'by-audio-blob-key' | 'by-visual-blob-key',
+    reversed?: boolean
+  ): Promise<
+    [
+      Array<ISoundsInfoStoreValue | Partial<ISoundsInfoStoreValue>>,
+      Array<number>
+    ]
+  > {
+    if (!this.songsDb)
+      throw new Error('The database is still loading or had issues to load');
+    const data = await this.songsDb.getAllFromIndex(storeName, index);
+    const keys = await this.songsDb.getAllKeysFromIndex(storeName, index);
+    if (reversed) {
+      data.reverse();
+      keys.reverse();
+    }
+    return [data, keys];
   }
 
   /* -------------- */

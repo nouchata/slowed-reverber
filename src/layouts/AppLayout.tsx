@@ -70,13 +70,13 @@ const AppLayout = (props: IBasicPropsInterface & { tabName: string }) => {
           <AppHeader
             title={props.tabName}
             /* backdrop blur (backdrop-blur-sm) seems to give firefox epilepsy, needs to be investigated more */
-            className="h-[70px] block absolute top-0 w-full drop-shadow z-20"
+            className="bg-black h-[70px] block absolute top-0 w-full drop-shadow z-20"
           ></AppHeader>
-          <div className="relative flex-1 pt-[70px]">
+          <div className="relative h-0 flex-1 pt-[70px] overflow-scroll">
             {props.children && props.children}
           </div>
           <AppMenu
-            className="border-t border-t-[rgba(255,255,255,0.1)] flex-[0_0_50px] drop-shadow z-20 shadow-inner"
+            className="bg-black border-t border-t-[rgba(255,255,255,0.1)] flex-[0_0_50px] drop-shadow z-20 shadow-inner"
             selectedItem={props.tabName}
             menuItems={menuItems}
           ></AppMenu>
