@@ -211,7 +211,9 @@ export default class SoundsManager {
     /* processors init */
     try {
       await this.audioContext.audioWorklet.addModule(
-        '/assets/js/phase-vocoder.min.js'
+        `${
+          this.currentAppData!.router!.basePath
+        }/assets/js/phase-vocoder.min.js`
       );
 
       this.phaseVocoderProcessor = new AudioWorkletNode(
@@ -248,6 +250,7 @@ export default class SoundsManager {
     this.isFullyInit = false;
     this.songsDb?.close();
     this.audioContext?.close();
+    if (this.encoder?.isLoaded()) this.encoder?.exit();
     /* idk if it's that useful since the sm context is sticked with
      * the app so */
     // if (process.env.NODE_ENV === 'production')
@@ -261,6 +264,10 @@ export default class SoundsManager {
   public destructor() {
     this.needsToBeDestructed = true;
     if (this.isFullyInit) this.freeData();
+  }
+
+  public closeDatabase() {
+    this.songsDb?.close();
   }
 
   /* ------------ */

@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 
+import { Meta } from '@/layouts/Meta';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import { EAppModalState } from '@/utils/interfaces/AppModalState';
@@ -104,6 +105,12 @@ const AddSongModal = () => {
       id="add-song-modal-container"
       className="relative w-full h-full box-border rounded-t-lg"
     >
+      <Meta
+        title={`${
+          router.query.md === 'addSong' ? 'Add song' : 'Edit values'
+        } - Slowed Reverber`}
+        description={'Add a new song entry in the app'}
+      ></Meta>
       <div
         id="add-song-modal-container-content"
         className="rounded-t-lg flex flex-col flex-nowrap w-full h-full"

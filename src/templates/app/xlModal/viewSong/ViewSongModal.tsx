@@ -1,5 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 
+import { Meta } from '@/layouts/Meta';
 import LowpassSVG from '@/svgs/app/addSong/editValues/Lowpass';
 import ReverbSVG from '@/svgs/app/addSong/editValues/Reverb';
 import SpeedSVG from '@/svgs/app/addSong/editValues/Speed';
@@ -169,6 +170,14 @@ const ViewSongModal = () => {
       id="add-song-modal-container"
       className="relative w-full h-full box-border rounded-t-lg"
     >
+      <Meta
+        title={`${
+          currentSound?.soundInfoData?.name
+            ? `${currentSound?.soundInfoData?.name}`
+            : 'View song'
+        } - Slowed Reverber`}
+        description={'Global view of the current song'}
+      ></Meta>
       <div
         id="add-song-modal-container-content"
         className="rounded-t-lg flex flex-col flex-nowrap w-full h-full"

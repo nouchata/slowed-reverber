@@ -2,7 +2,6 @@ import Head from 'next/head';
 import { NextSeo } from 'next-seo';
 import { useContext } from 'react';
 
-import { AppConfig } from '@/utils/AppConfig';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
 
 type IMetaProps = {
@@ -58,8 +57,8 @@ const Meta = (props: IMetaProps) => {
           title: props.title,
           description: props.description,
           url: props.canonical,
-          locale: AppConfig.locale,
-          site_name: AppConfig.site_name,
+          locale: 'en',
+          site_name: 'Slowed Reverber',
         }}
       />
     </>

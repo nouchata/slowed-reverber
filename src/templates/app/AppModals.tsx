@@ -160,7 +160,7 @@ const AppModals = () => {
           })
         );
       } else if (oldRoutes.length) router.back();
-      else router.push('/app/songs');
+      else router.push(router.pathname || '/app/songs');
     } else {
       modalContainerTl.current.reverse();
       modalXlTl.current.reverse();
@@ -202,6 +202,14 @@ const AppModals = () => {
           <></>
         )}
       </div>
+      {appData && appData.customModal && appData.error.type !== 'critical' && (
+        <div
+          id="app-display-custom-modal"
+          className="absolute w-full h-full bg-[rgba(0,0,0,0.5)] z-50 flex justify-center items-center"
+        >
+          {appData.customModal}
+        </div>
+      )}
       {/* the medium modal is also used for critical error, in the case of critical error, it can't be closed and will be showed
        * with a slightly different style */}
       {(appData?.mediumModalText || appData?.error.type === 'critical') && (

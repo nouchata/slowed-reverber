@@ -1,6 +1,7 @@
 import router from 'next/router';
 import { useContext, useEffect, useState } from 'react';
 
+import { Meta } from '@/layouts/Meta';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import { EAppModalState } from '@/utils/interfaces/AppModalState';
 import { EExportChoices } from '@/utils/interfaces/ExportChoicesEnum';
@@ -104,6 +105,10 @@ const ExportMediaModal = () => {
       id="export-media-modal-container"
       className="relative w-full h-full box-border rounded-t-lg"
     >
+      <Meta
+        title={'Export - Slowed Reverber'}
+        description={'Export the audio or video of the current song'}
+      ></Meta>
       <div
         id="export-media-modal-container"
         className="rounded-t-lg flex flex-col flex-nowrap w-full h-full"

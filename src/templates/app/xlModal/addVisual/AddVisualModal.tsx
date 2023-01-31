@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { useContext, useEffect, useState } from 'react';
 
+import { Meta } from '@/layouts/Meta';
 import { AppDataContext } from '@/utils/contexts/AppDataContext';
 import { SoundsManagerContext } from '@/utils/contexts/SoundsManagerContext';
 import { EAppModalState } from '@/utils/interfaces/AppModalState';
@@ -106,11 +107,15 @@ const AddVisualModal = (props: {
     return <AppModalsCriticalError error={modalState.error || ''} />;
   return (
     <div
-      id="make-video-modal-container"
+      id="add-visual-modal-container"
       className="relative w-full h-full box-border rounded-t-lg"
     >
+      <Meta
+        title={'Edit visual - Slowed Reverber'}
+        description={'Edit the visual asset of the song'}
+      ></Meta>
       <div
-        id="make-video-modal-container-content"
+        id="add-visual-modal-container-content"
         className="rounded-t-lg flex flex-col flex-nowrap w-full h-full"
       >
         <XlModalHeader

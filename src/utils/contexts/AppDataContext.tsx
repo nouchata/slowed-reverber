@@ -1,6 +1,6 @@
 import type { BaseRouter } from 'next/dist/shared/lib/router/router';
 import type { NextRouter } from 'next/router';
-import type { Dispatch, Reducer } from 'react';
+import type { Dispatch, ReactNode, Reducer } from 'react';
 import { createContext, useEffect, useReducer } from 'react';
 
 import useRouterWithHistory from '../useRouterWithHistory';
@@ -8,6 +8,8 @@ import useRouterWithHistory from '../useRouterWithHistory';
 export type IAppData = {
   /* error to be passed to the small or big modal based on type */
   error: { type: 'normal' | 'critical' | 'none'; value: string };
+  /* used to show custom modal */
+  customModal: ReactNode | JSX.Element | null;
   /* used for printing message in the medium modal */
   mediumModalText: string;
   /* drag and drop flag for the song / image input */
@@ -36,6 +38,10 @@ const AppDataProvider = (props: { children: any }) => {
     (state, updates) => ({
       error: updates.error || state.error,
       fileDragAndDrop: updates.fileDragAndDrop ?? state.fileDragAndDrop,
+      customModal:
+        updates.customModal || updates.customModal === null
+          ? updates.customModal
+          : state.customModal,
       mediumModalText: updates.mediumModalText ?? state.mediumModalText,
       router: updates.router ?? state.router,
       oldRoutes: updates.oldRoutes ?? state.oldRoutes,
@@ -43,6 +49,7 @@ const AppDataProvider = (props: { children: any }) => {
     {
       error: { type: 'none', value: '' },
       fileDragAndDrop: false,
+      customModal: null,
       mediumModalText: '',
       router,
       oldRoutes,

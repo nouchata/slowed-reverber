@@ -24,7 +24,7 @@ const AppIndex: NextPageLayoutInterface = () => {
 };
 
 AppIndex.getLayout = (page) => {
-  return <AppLayout tabName={''}>{page}</AppLayout>;
+  return <AppLayout>{page}</AppLayout>;
 };
 
 export default AppIndex;
