@@ -1,0 +1,27 @@
+name: Export and Deploy
+on:
+  push:
+    branches:
+      - main
+env:
+  EXPORT_BASEPATH: ${{ vars.EXPORT_BASEPATH }}
+permissions:
+  contents: write
+jobs:
+  build-and-deploy:
+    concurrency: ci-${{ github.ref }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3
+
+      - name: Export 🔧
+        run: |
+          npm ci
+          npm run export
+          touch out/.nojekyll
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: out
