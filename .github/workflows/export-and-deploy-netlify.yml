@@ -1,0 +1,31 @@
+name: Export and Deploy Netlify
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: write
+jobs:
+  build-and-deploy:
+    concurrency: ci-${{ github.ref }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v3
+
+      - name: Export 🔧
+        run: |
+          npm ci
+          npm run export
+          touch out/_headers
+          printf "/*\n  Cross-Origin-Embedder-Policy: require-corp\n  Cross-Origin-Opener-Policy: same-origin\n" > out/_headers
+
+      - name: Deploy to Netlify 🚀
+        uses: jsmrcaga/action-netlify-deploy@master
+        with:
+          build_directory: 'out'
+          install_command: 'echo'
+          build_command: 'echo'
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          NETLIFY_DEPLOY_TO_PROD: true
