@@ -484,7 +484,7 @@ export default class SoundsManager {
 
     /* export processors */
     await offlineAudioContext.audioWorklet.addModule(
-      '/assets/js/phase-vocoder.min.js'
+      `${this.currentAppData!.router!.basePath}/assets/js/phase-vocoder.min.js`
     );
     const offlinePhaseVocoderProc = new AudioWorkletNode(
       offlineAudioContext,
@@ -498,7 +498,9 @@ export default class SoundsManager {
     const offlineReverbProc = new this.ReverbProcessor!(
       offlineAudioContext as any
     );
-    offlineReverbProc.mix(this.currentSound.soundInfoData?.speedValue || 0);
+    offlineReverbProc.mix(
+      this.currentSound.soundInfoData?.reverbEffectValue || 0
+    );
 
     const offlineMuffledProc = offlineAudioContext.createBiquadFilter();
     offlineMuffledProc.type = 'lowpass';
